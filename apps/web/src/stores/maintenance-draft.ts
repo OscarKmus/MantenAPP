@@ -26,7 +26,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
   const currentMaintenance = ref<Maintenance | null>(null);
   const items = ref<MaintenanceItemWithRelations[]>([]);
   const attachments = ref<Attachment[]>([]);
-  const signature = ref<string | null>(null);
+  const clientSignature = ref<string | null>(null);
+  const technicianSignature = ref<string | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const currentStep = ref(0); // 0=items, 1=report, 2=signature, 3=done
@@ -43,7 +44,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
       const data = {
         maintenanceId: currentMaintenance.value?.id,
         currentStep: currentStep.value,
-        signature: signature.value,
+        clientSignature: clientSignature.value,
+        technicianSignature: technicianSignature.value,
       };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
     } catch {
@@ -57,7 +59,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
       if (!raw) return null;
       const data = JSON.parse(raw);
       currentStep.value = data.currentStep ?? 0;
-      signature.value = data.signature ?? null;
+      clientSignature.value = data.clientSignature ?? data.signature ?? null;
+      technicianSignature.value = data.technicianSignature ?? null;
       return data.maintenanceId ?? null;
     } catch {
       return null;
@@ -100,7 +103,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
       currentMaintenance.value = data.maintenance;
       items.value = data.maintenance.items;
       attachments.value = [];
-      signature.value = null;
+      clientSignature.value = null;
+      technicianSignature.value = null;
       currentStep.value = 0;
       persistToSession();
       return data.maintenance;
@@ -180,16 +184,21 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
     }
   }
 
-  // Set signature data URL
-  function setSignature(dataUrl: string | null) {
-    signature.value = dataUrl;
+  // Set signature data URLs
+  function setClientSignature(dataUrl: string | null) {
+    clientSignature.value = dataUrl;
     persistToSession();
   }
 
-  // Close maintenance with signature
+  function setTechnicianSignature(dataUrl: string | null) {
+    technicianSignature.value = dataUrl;
+    persistToSession();
+  }
+
+  // Close maintenance with both signatures
   async function closeMaintenance() {
-    if (!currentMaintenance.value || !signature.value) {
-      throw new Error("Missing maintenance or signature");
+    if (!currentMaintenance.value || !clientSignature.value || !technicianSignature.value) {
+      throw new Error("Missing maintenance or signatures");
     }
 
     loading.value = true;
@@ -197,7 +206,10 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
     try {
       const { data } = await api.post<{ maintenance: Maintenance; pdfPath: string | null }>(
         `/maintenances/${currentMaintenance.value.id}/close`,
-        { signatureData: signature.value }
+        {
+          clientSignatureData: clientSignature.value,
+          technicianSignatureData: technicianSignature.value,
+        }
       );
       currentMaintenance.value = data.maintenance;
       currentStep.value = 3; // done step
@@ -236,7 +248,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
     currentMaintenance.value = null;
     items.value = [];
     attachments.value = [];
-    signature.value = null;
+    clientSignature.value = null;
+    technicianSignature.value = null;
     currentStep.value = 0;
     loading.value = false;
     error.value = null;
@@ -259,7 +272,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
     currentMaintenance,
     items,
     attachments,
-    signature,
+    clientSignature,
+    technicianSignature,
     loading,
     error,
     currentStep,
@@ -271,7 +285,8 @@ export const useMaintenanceDraftStore = defineStore("maintenance-draft", () => {
     removeItem,
     addAttachment,
     removeAttachment,
-    setSignature,
+    setClientSignature,
+    setTechnicianSignature,
     closeMaintenance,
     goToStep,
     nextStep,

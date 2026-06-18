@@ -4,6 +4,8 @@ import SignaturePad from "signature_pad";
 
 const props = defineProps<{
   modelValue: string | null;
+  label?: string;
+  subtitle?: string;
   minWidth?: number;
   maxWidth?: number;
   penColor?: string;
@@ -120,7 +122,10 @@ defineExpose({ clear, validateSignature });
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between">
-      <label class="block text-sm font-medium text-slate-700">Firma del técnico</label>
+      <div>
+        <label class="block text-sm font-medium text-slate-700">{{ label || 'Firma' }}</label>
+        <p v-if="subtitle" class="text-xs text-slate-500 mt-0.5">{{ subtitle }}</p>
+      </div>
       <button
         type="button"
         class="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"

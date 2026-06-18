@@ -212,36 +212,38 @@ export async function closeMaintenance(id: string, input: CloseMaintenanceInput)
     throw createError(409, "Maintenance is already closed");
   }
 
-  // Extract base64 data from dataURL
-  const base64Data = input.signatureData.replace(/^data:image\/[a-z]+;base64,/, "");
-  const signatureBuffer = Buffer.from(base64Data, "base64");
-
-  // Validate signature buffer is not empty
-  if (signatureBuffer.length < 100) {
-    throw createError(400, "Signature is too small");
-  }
-
-  // Save signature to storage
   const now = new Date();
   const year = now.getFullYear().toString();
   const month = (now.getMonth() + 1).toString().padStart(2, "0");
-  const filename = `${id}.png`;
-  const storagePath = `signatures/${year}/${month}/${filename}`;
-  const fullPath = require("path").resolve(process.cwd(), "storage", storagePath);
 
-  // Ensure directory exists
-  const dir = require("path").dirname(fullPath);
-  await require("fs").promises.mkdir(dir, { recursive: true });
-  await require("fs").promises.writeFile(fullPath, signatureBuffer);
+  // Helper to save a signature dataURL to disk and return storage path
+  async function saveSignature(dataUrl: string, suffix: string): Promise<string> {
+    const base64Data = dataUrl.replace(/^data:image\/[a-z]+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+    if (buffer.length < 100) {
+      throw createError(400, `Signature (${suffix}) is too small`);
+    }
+    const filename = `${id}-${suffix}.png`;
+    const storagePath = `signatures/${year}/${month}/${filename}`;
+    const fullPath = require("path").resolve(process.cwd(), "storage", storagePath);
+    const dir = require("path").dirname(fullPath);
+    await require("fs").promises.mkdir(dir, { recursive: true });
+    await require("fs").promises.writeFile(fullPath, buffer);
+    return storagePath;
+  }
 
-  // Update maintenance: close it, store signature path
+  // Save both signatures
+  const clientSigPath = await saveSignature(input.clientSignatureData, "client");
+  const techSigPath = await saveSignature(input.technicianSignatureData, "tech");
+
+  // Update maintenance: close it, store both signature paths
   const updated = await prisma.maintenance.update({
     where: { id },
     data: {
       status: "CLOSED",
-      signatureData: storagePath,
+      signatureData: clientSigPath,
+      technicianSignatureData: techSigPath,
       closedAt: now,
-      // PDF generated below (sync)
       pdfPath: null,
       pdfEngine: null,
     },

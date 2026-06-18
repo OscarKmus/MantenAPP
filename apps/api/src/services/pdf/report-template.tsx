@@ -42,7 +42,8 @@ interface ReportData {
     data: string; // base64 data URL
     caption: string;
   }>;
-  signatureData: string | null; // base64 data URL
+  clientSignatureData: string | null; // base64 data URL
+  technicianSignatureData: string | null; // base64 data URL
   notes: string | null;
 }
 
@@ -593,8 +594,8 @@ export function MaintenanceReport({ data }: { data: ReportData }) {
           <Text style={styles.sectionTitle}>Firmas</Text>
           <View style={styles.signaturesContainer}>
             <View style={styles.signatureBlock}>
-              {data.signatureData ? (
-                <Image src={data.signatureData} style={styles.signatureImage} />
+              {data.technicianSignatureData ? (
+                <Image src={data.technicianSignatureData} style={styles.signatureImage} />
               ) : (
                 <View
                   style={[
@@ -610,8 +611,8 @@ export function MaintenanceReport({ data }: { data: ReportData }) {
               <Text style={styles.signatureName}>{data.technicianName}</Text>
             </View>
             <View style={styles.signatureBlock}>
-              {data.signatureData ? (
-                <Image src={data.signatureData} style={styles.signatureImage} />
+              {data.clientSignatureData ? (
+                <Image src={data.clientSignatureData} style={styles.signatureImage} />
               ) : (
                 <View
                   style={[

@@ -146,13 +146,14 @@ model ActionType {
 
 // ─── Maintenances ────────────────────────────────────────
 model Maintenance {
-  id            String            @id @default(uuid())
-  clientId      String            @map("client_id")
-  technicianId  String            @map("technician_id")
-  status        MaintenanceStatus @default(DRAFT)
-  notes         String?
-  signatureData String?           @map("signature_data")
-  pdfPath       String?           @map("pdf_path")
+  id                      String            @id @default(uuid())
+  clientId                String            @map("client_id")
+  technicianId            String            @map("technician_id")
+  status                  MaintenanceStatus @default(DRAFT)
+  notes                   String?
+  signatureData           String?           @map("signature_data") // client signature (legacy name)
+  technicianSignatureData String?           @map("technician_signature_data") // technician signature
+  pdfPath                 String?           @map("pdf_path")
   pdfEngine     String?           @map("pdf_engine")
   closedAt      DateTime?         @map("closed_at")
   createdAt     DateTime          @default(now()) @map("created_at")

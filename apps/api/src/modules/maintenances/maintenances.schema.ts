@@ -18,12 +18,19 @@ export const updateMaintenanceItemSchema = z.object({
 });
 
 export const closeMaintenanceSchema = z.object({
-  signatureData: z
+  clientSignatureData: z
     .string()
-    .min(1, "Signature data is required")
+    .min(1, "Client signature is required")
     .refine(
       (val) => val.startsWith("data:image/png;base64,") || val.startsWith("data:image/jpeg;base64,"),
-      "Signature must be a base64 PNG or JPEG data URL"
+      "Client signature must be a base64 PNG or JPEG data URL"
+    ),
+  technicianSignatureData: z
+    .string()
+    .min(1, "Technician signature is required")
+    .refine(
+      (val) => val.startsWith("data:image/png;base64,") || val.startsWith("data:image/jpeg;base64,"),
+      "Technician signature must be a base64 PNG or JPEG data URL"
     ),
 });
 

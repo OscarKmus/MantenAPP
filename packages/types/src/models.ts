@@ -78,7 +78,8 @@ export interface Maintenance {
   technicianId: string;
   status: MaintenanceStatus;
   notes: string | null;
-  signatureData: string | null;
+  signatureData: string | null; // client signature storage path
+  technicianSignatureData: string | null; // technician signature storage path
   pdfPath: string | null;
   pdfEngine: string | null;
   closedAt: string | null;

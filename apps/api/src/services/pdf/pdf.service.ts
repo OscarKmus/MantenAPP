@@ -150,13 +150,25 @@ export async function generateMaintenancePdf(
     }
   }
 
-  // Signature
-  let signatureData: string | null = null;
+  // Signatures
+  let clientSignatureData: string | null = null;
+  let technicianSignatureData: string | null = null;
+
   if (maintenance.signatureData) {
     const sigPath = path.join(STORAGE_ROOT, maintenance.signatureData);
     try {
       const sigBuffer = await fs.promises.readFile(sigPath);
-      signatureData = `data:image/png;base64,${sigBuffer.toString("base64")}`;
+      clientSignatureData = `data:image/png;base64,${sigBuffer.toString("base64")}`;
+    } catch {
+      // Signature file missing
+    }
+  }
+
+  if (maintenance.technicianSignatureData) {
+    const sigPath = path.join(STORAGE_ROOT, maintenance.technicianSignatureData);
+    try {
+      const sigBuffer = await fs.promises.readFile(sigPath);
+      technicianSignatureData = `data:image/png;base64,${sigBuffer.toString("base64")}`;
     } catch {
       // Signature file missing
     }
@@ -185,7 +197,8 @@ export async function generateMaintenancePdf(
     },
     items,
     photos,
-    signatureData,
+    clientSignatureData,
+    technicianSignatureData,
     notes: maintenance.notes,
   };
 

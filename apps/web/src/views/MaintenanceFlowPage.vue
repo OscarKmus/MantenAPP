@@ -17,7 +17,8 @@ const maintenanceId = computed(() => route.params.id as string);
 const steps = ["Equipos", "Reporte", "Firma", "Listo"];
 
 const activeItemIndex = ref(0);
-const signaturePadRef = ref<InstanceType<typeof SignaturePad> | null>(null);
+const technicianSignaturePadRef = ref<InstanceType<typeof SignaturePad> | null>(null);
+const clientSignaturePadRef = ref<InstanceType<typeof SignaturePad> | null>(null);
 const closing = ref(false);
 const closeError = ref<string | null>(null);
 const pdfPath = ref<string | null>(null);
@@ -102,8 +103,8 @@ function goToNextItem() {
 }
 
 async function handleClose() {
-  if (!draftStore.signature) {
-    closeError.value = "La firma es requerida";
+  if (!draftStore.technicianSignature || !draftStore.clientSignature) {
+    closeError.value = "Ambas firmas son requeridas";
     return;
   }
 
@@ -132,7 +133,7 @@ function handleBackToClient() {
 
 function handleGoToStep(step: number) {
   // Don't allow going forward past signature if not signed
-  if (step > 1 && !draftStore.signature && step !== 3) {
+  if (step > 1 && (!draftStore.technicianSignature || !draftStore.clientSignature) && step !== 3) {
     return;
   }
   draftStore.goToStep(step);
@@ -346,11 +347,25 @@ function handleGoToStep(step: number) {
 
       <!-- Step 2: Signature -->
       <div v-else-if="currentStep === 2" class="space-y-6">
+        <!-- Technician signature -->
         <div class="bg-white rounded-xl border border-slate-200 p-5">
           <SignaturePad
-            ref="signaturePadRef"
-            :model-value="draftStore.signature"
-            @update:model-value="draftStore.setSignature"
+            ref="technicianSignaturePadRef"
+            :model-value="draftStore.technicianSignature"
+            label="Firma del técnico"
+            subtitle="Confirmá que realizaste la mantención"
+            @update:model-value="draftStore.setTechnicianSignature"
+          />
+        </div>
+
+        <!-- Client signature -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <SignaturePad
+            ref="clientSignaturePadRef"
+            :model-value="draftStore.clientSignature"
+            label="Firma del cliente"
+            subtitle="Firma del responsable del cliente que recibe la mantención"
+            @update:model-value="draftStore.setClientSignature"
           />
         </div>
 
@@ -377,7 +392,7 @@ function handleGoToStep(step: number) {
             class="flex-1 px-4 py-3 bg-green-600 text-white text-sm font-semibold rounded-xl
                    hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
                    disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            :disabled="!draftStore.signature || closing"
+            :disabled="!draftStore.technicianSignature || !draftStore.clientSignature || closing"
             @click="handleClose"
           >
             <svg
@@ -392,7 +407,7 @@ function handleGoToStep(step: number) {
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            Confirmar firma y cerrar
+            Confirmar firmas y cerrar
           </button>
         </div>
       </div>
@@ -420,7 +435,11 @@ function handleGoToStep(step: number) {
               <span class="font-medium text-green-700">{{ draftStore.completedCount }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-500">Firma:</span>
+              <span class="text-slate-500">Firma técnico:</span>
+              <span class="font-medium text-green-700">Capturada</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Firma cliente:</span>
               <span class="font-medium text-green-700">Capturada</span>
             </div>
           </div>

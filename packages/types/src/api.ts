@@ -124,7 +124,8 @@ export interface UpdateMaintenanceItemRequest {
 }
 
 export interface CloseMaintenanceRequest {
-  signatureData: string;
+  clientSignatureData: string;
+  technicianSignatureData: string;
 }
 
 export interface MaintenanceDetailResponse {
