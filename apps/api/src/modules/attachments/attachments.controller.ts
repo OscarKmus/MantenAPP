@@ -100,9 +100,10 @@ attachmentsRouter.delete(
   }
 );
 
-// GET /api/files/:path(*) — serve stored files (with path traversal protection)
+// GET /api/files/*path — serve stored files (with path traversal protection)
+// Express 5 (path-to-regexp v8) uses *name syntax for wildcards (was :path(*) in Express 4).
 attachmentsRouter.get(
-  "/files/:path(*)",
+  "/files/*path",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const storagePath = getParam(req.params.path);
