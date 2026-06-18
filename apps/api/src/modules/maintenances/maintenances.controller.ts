@@ -15,8 +15,13 @@ import {
   closeMaintenance,
   listClientMaintenances,
 } from "./maintenances.service";
+import {
+  getMaintenancePdfPath,
+  regenerateMaintenancePdf,
+} from "../../services/pdf/pdf.service";
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
+import * as path from "path";
 
 export const maintenancesRouter: IRouter = Router();
 
@@ -110,12 +115,63 @@ maintenancesRouter.post(
     try {
       const id = getParam(req.params.id);
       const maintenance = await closeMaintenance(id, req.body);
+
+      // Trigger PDF generation (sync for dev simplicity)
+      let pdfPath: string | null = null;
+      try {
+        const result = await regenerateMaintenancePdf(id);
+        pdfPath = result.pdfPath;
+      } catch (pdfErr) {
+        console.error("PDF generation failed on close:", pdfErr);
+        // Don't fail the close if PDF generation fails
+      }
+
       res.json({
         maintenance,
-        pdfPath: null, // TODO: Slice 4 — PDF generation
+        pdfPath,
       });
     } catch (error) {
       next(error);
+    }
+  }
+);
+
+// GET /api/maintenances/:id/pdf — download the generated PDF
+maintenancesRouter.get(
+  "/:id/pdf",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = getParam(req.params.id);
+      const filePath = await getMaintenancePdfPath(id);
+      const filename = `mantencion-${id.substring(0, 8)}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`
+      );
+      res.sendFile(filePath);
+    } catch (error: any) {
+      const status = error.status || 500;
+      res.status(status).json({ error: error.message });
+    }
+  }
+);
+
+// POST /api/maintenances/:id/pdf/regenerate — force PDF regeneration
+maintenancesRouter.post(
+  "/:id/pdf/regenerate",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = getParam(req.params.id);
+      const result = await regenerateMaintenancePdf(id);
+      res.json({
+        pdfPath: result.pdfPath,
+        pdfEngine: result.pdfEngine,
+      });
+    } catch (error: any) {
+      const status = error.status || 500;
+      res.status(status).json({ error: error.message });
     }
   }
 );
