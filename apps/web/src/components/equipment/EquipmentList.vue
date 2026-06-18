@@ -48,6 +48,7 @@ watch(() => props.equipment, applyFilter, { immediate: true });
 watch(statusFilter, applyFilter);
 
 function openCreate() {
+  console.log("[EquipmentList] openCreate called");
   editingEquipment.value = null;
   showForm.value = true;
 }
@@ -58,6 +59,7 @@ function openEdit(eq: Equipment) {
 }
 
 function handleSubmit(data: Record<string, unknown>) {
+  console.log("[EquipmentList] handleSubmit", data, "editing=", editingEquipment.value?.id);
   if (editingEquipment.value) {
     emit("update", editingEquipment.value.id, data);
   } else {
@@ -66,6 +68,10 @@ function handleSubmit(data: Record<string, unknown>) {
   showForm.value = false;
   editingEquipment.value = null;
 }
+
+// Debug: log when modal opens
+import { watch } from "vue";
+watch(showForm, (v) => console.log("[EquipmentList] modal showForm=", v));
 
 function handleDelete(eq: Equipment) {
   if (confirm(`¿Eliminar "${eq.name}"?\n\nSi tiene historial de mantenciones, no se podrá borrar.`)) {

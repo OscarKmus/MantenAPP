@@ -54,8 +54,13 @@ async function handleDeleteClient() {
   }
 }
 
-function handleCreateEquipment(data: Record<string, unknown>) {
-  equipmentStore.createEquipment(clientId.value, data);
+async function handleCreateEquipment(data: Record<string, unknown>) {
+  try {
+    await equipmentStore.createEquipment(clientId.value, data);
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || e?.message || "No se pudo crear el equipo";
+    alert(`No se pudo crear el equipo:\n\n${msg}`);
+  }
 }
 
 function handleUpdateEquipment(id: string, data: Record<string, unknown>) {

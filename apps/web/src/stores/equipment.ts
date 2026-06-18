@@ -31,13 +31,16 @@ export const useEquipmentStore = defineStore("equipment", () => {
     loading.value = true;
     error.value = null;
     try {
+      console.log("[equipment store] POST /clients/" + clientId + "/equipment", input);
       const { data } = await api.post<{ equipment: Equipment }>(
         `/clients/${clientId}/equipment`,
         input
       );
+      console.log("[equipment store] created OK:", data.equipment);
       equipment.value.push(data.equipment);
       return data.equipment;
     } catch (err: any) {
+      console.error("[equipment store] create FAILED:", err?.response?.status, err?.response?.data, err?.message);
       error.value = err.response?.data?.error || "Error creating equipment";
       throw err;
     } finally {
