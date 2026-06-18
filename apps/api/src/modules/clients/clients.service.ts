@@ -146,13 +146,32 @@ export async function deleteClient(id: string) {
     throw createError(404, "Client not found");
   }
 
-  // Check for maintenance history
-  const maintenanceCount = await prisma.maintenance.count({
-    where: { clientId: id },
-  });
+  // Check for any related records that would block deletion.
+  // Postgres FK constraints are RESTRICT by default, so we surface a clear 409
+  // instead of letting Prisma throw a P2003 (which becomes a generic 500).
+  const [equipmentCount, maintenanceCount, templateCount] = await Promise.all([
+    prisma.equipment.count({ where: { clientId: id } }),
+    prisma.maintenance.count({ where: { clientId: id } }),
+    prisma.template.count({ where: { clientId: id } }),
+  ]);
 
   if (maintenanceCount > 0) {
-    throw createError(409, "Cannot delete client with maintenance history");
+    throw createError(
+      409,
+      `No se puede eliminar: el cliente tiene ${maintenanceCount} mantención(es) registrada(s).`
+    );
+  }
+  if (equipmentCount > 0) {
+    throw createError(
+      409,
+      `No se puede eliminar: el cliente tiene ${equipmentCount} equipo(s) registrado(s). Eliminá los equipos primero.`
+    );
+  }
+  if (templateCount > 0) {
+    throw createError(
+      409,
+      `No se puede eliminar: el cliente tiene ${templateCount} plantilla(s) registrada(s).`
+    );
   }
 
   await prisma.client.delete({ where: { id } });
