@@ -70,14 +70,20 @@ function validate(): boolean {
 function handleSubmit() {
   if (!validate()) return;
 
+  // Only include fields that have a value; the API schema is optional/nullable
+  // but rejects explicit `null` (the service normalizes "" → null, not the form).
   const data: Record<string, unknown> = {
     name: form.value.name.trim(),
-    ip: form.value.ip.trim() || null,
-    mac: form.value.mac.trim() || null,
-    serial: form.value.serial.trim() || null,
-    assignedTo: form.value.assignedTo.trim() || null,
     status: form.value.status,
   };
+  const ip = form.value.ip.trim();
+  if (ip) data.ip = ip;
+  const mac = form.value.mac.trim();
+  if (mac) data.mac = mac;
+  const serial = form.value.serial.trim();
+  if (serial) data.serial = serial;
+  const assignedTo = form.value.assignedTo.trim();
+  if (assignedTo) data.assignedTo = assignedTo;
 
   emit("submit", data);
 }
