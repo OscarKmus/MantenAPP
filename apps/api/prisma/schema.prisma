@@ -73,22 +73,21 @@ model Equipment {
   serial          String?
   assignedTo      String?         @map("assigned_to")
   status          EquipmentStatus @default(ACTIVE)
-  hasLicense      Boolean         @default(false) @map("has_license")
-  licenseType     String?         @map("license_type")
-  licenseExpiresAt DateTime?      @map("license_expires_at")
-  licenseNotes    String?         @map("license_notes")
+  softwareId      String?         @map("software_id")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
   client           Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   category         EquipmentCategory?   @relation(fields: [categoryId], references: [id])
+  software         Software?            @relation("EquipmentSoftware", fields: [softwareId], references: [id], onDelete: SetNull)
+  softwareLicenses Software[]           @relation("SoftwareEquipment")
   maintenanceItems MaintenanceItem[]
   templateItems    TemplateItem[]
   components       EquipmentComponent[]
-  software         Software[]
 
   @@index([clientId])
   @@index([categoryId])
+  @@index([softwareId])
   @@map("equipment")
 }
 
@@ -146,8 +145,9 @@ model Software {
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  equipment Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  equipment    Equipment?  @relation("SoftwareEquipment", fields: [equipmentId], references: [id], onDelete: SetNull)
+  installedOn  Equipment[] @relation("EquipmentSoftware")
 
   @@index([clientId])
   @@index([equipmentId])

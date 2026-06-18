@@ -45,10 +45,7 @@ export const createEquipmentSchema = z.object({
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
-  hasLicense: z.boolean().optional(),
-  licenseType: optionalString(50),
-  licenseExpiresAt: optionalDateString,
-  licenseNotes: optionalString(500),
+  softwareId: z.string().uuid().nullable().optional(),
 });
 
 export const updateEquipmentSchema = z.object({
@@ -59,10 +56,7 @@ export const updateEquipmentSchema = z.object({
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
-  hasLicense: z.boolean().optional(),
-  licenseType: optionalString(50),
-  licenseExpiresAt: optionalDateString,
-  licenseNotes: optionalString(500),
+  softwareId: z.string().uuid().nullable().optional(),
 });
 
 export const equipmentQuerySchema = z.object({

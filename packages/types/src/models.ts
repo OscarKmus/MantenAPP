@@ -56,19 +56,17 @@ export interface Equipment {
   id: string;
   clientId: string;
   categoryId: string | null;
+  softwareId: string | null;
   name: string;
   ip: string | null;
   mac: string | null;
   serial: string | null;
   assignedTo: string | null;
   status: EquipmentStatus;
-  hasLicense: boolean;
-  licenseType: string | null;
-  licenseExpiresAt: string | null;
-  licenseNotes: string | null;
   createdAt: string;
   updatedAt: string;
   category?: EquipmentCategory | null;
+  software?: Software | null;
   components?: EquipmentComponent[];
 }
 

@@ -361,8 +361,8 @@ const filteredSoftware = computed(() => inventoryStore.software);
             </div>
           </div>
 
-          <!-- License badge -->
-          <div v-if="eq.hasLicense" class="mt-3 pt-3 border-t border-slate-100">
+          <!-- Software badge -->
+          <div v-if="eq.software" class="mt-3 pt-3 border-t border-slate-100">
             <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -372,7 +372,7 @@ const filteredSoftware = computed(() => inventoryStore.software);
                   d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                 />
               </svg>
-              Licencia asignada
+              {{ eq.software.name }}
             </span>
           </div>
 
@@ -616,32 +616,39 @@ const filteredSoftware = computed(() => inventoryStore.software);
             <!-- License Info -->
             <div class="bg-slate-50 rounded-xl p-4">
               <h3 class="text-sm font-semibold text-slate-700 mb-3">
-                Licencia
+                Software instalado
               </h3>
-              <div v-if="selectedEquipment.hasLicense" class="space-y-2 text-sm">
+              <div v-if="selectedEquipment.software" class="space-y-2 text-sm">
+                <div>
+                  <p class="text-slate-500 text-xs">Nombre</p>
+                  <p class="text-slate-800 font-medium">
+                    {{ selectedEquipment.software.name }}
+                  </p>
+                </div>
                 <div>
                   <p class="text-slate-500 text-xs">Tipo</p>
                   <p class="text-slate-800 font-medium">
-                    {{ selectedEquipment.licenseType || "—" }}
+                    {{ LICENSE_LABELS[selectedEquipment.software.licenseType] || selectedEquipment.software.licenseType }}
                   </p>
                 </div>
                 <div>
                   <p class="text-slate-500 text-xs">Vencimiento</p>
-                  <p class="text-slate-800 font-medium">
-                    {{
-                      selectedEquipment.licenseExpiresAt
-                        ? new Date(selectedEquipment.licenseExpiresAt).toLocaleDateString("es")
-                        : "—"
-                    }}
-                  </p>
+                  <span
+                    :class="[
+                      'text-xs font-medium px-2 py-0.5 rounded-full',
+                      getLicenseExpirationColor(selectedEquipment.software.expiresAt),
+                    ]"
+                  >
+                    {{ getLicenseExpirationText(selectedEquipment.software.expiresAt) }}
+                  </span>
                 </div>
-                <div v-if="selectedEquipment.licenseNotes">
+                <div v-if="selectedEquipment.software.notes">
                   <p class="text-slate-500 text-xs">Notas</p>
-                  <p class="text-slate-800">{{ selectedEquipment.licenseNotes }}</p>
+                  <p class="text-slate-800">{{ selectedEquipment.software.notes }}</p>
                 </div>
               </div>
-              <p v-else class="text-sm text-green-600 font-medium">
-                Sin licencias por el momento
+              <p v-else class="text-sm text-slate-500">
+                Sin software instalado
               </p>
             </div>
 

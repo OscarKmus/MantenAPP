@@ -22,6 +22,7 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus) 
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       components: { orderBy: { sortOrder: "asc" } },
+      software: true,
     },
   });
 }
@@ -32,7 +33,7 @@ export async function getEquipment(id: string) {
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       components: { orderBy: { sortOrder: "asc" } },
-      software: { orderBy: { expiresAt: "asc" } },
+      software: true,
     },
   });
   if (!equipment) {
@@ -66,10 +67,7 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     assignedTo: input.assignedTo || null,
     status: input.status ?? "ACTIVE",
     categoryId: input.categoryId ?? null,
-    hasLicense: input.hasLicense ?? false,
-    licenseType: input.licenseType || null,
-    licenseExpiresAt: input.licenseExpiresAt ? new Date(input.licenseExpiresAt) : null,
-    licenseNotes: input.licenseNotes || null,
+    softwareId: input.softwareId ?? null,
   };
 
   return prisma.equipment.create({
@@ -77,6 +75,7 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       components: true,
+      software: true,
     },
   });
 }
@@ -103,12 +102,7 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
   if (input.assignedTo !== undefined) data.assignedTo = input.assignedTo;
   if (input.status !== undefined) data.status = input.status;
   if (input.categoryId !== undefined) data.categoryId = input.categoryId;
-  if (input.hasLicense !== undefined) data.hasLicense = input.hasLicense;
-  if (input.licenseType !== undefined) data.licenseType = input.licenseType;
-  if (input.licenseExpiresAt !== undefined) {
-    data.licenseExpiresAt = input.licenseExpiresAt ? new Date(input.licenseExpiresAt) : null;
-  }
-  if (input.licenseNotes !== undefined) data.licenseNotes = input.licenseNotes;
+  if (input.softwareId !== undefined) data.softwareId = input.softwareId;
 
   return prisma.equipment.update({
     where: { id },
@@ -116,6 +110,7 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       components: true,
+      software: true,
     },
   });
 }

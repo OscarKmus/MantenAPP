@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
-import type { Equipment, EquipmentStatus, EquipmentCategory, EquipmentComponent, ComponentType } from "@mantenti/types";
+import type { Equipment, EquipmentStatus, EquipmentCategory, Software } from "@mantenti/types";
 import { useInventoryStore } from "@/stores/inventory";
 import api from "@/lib/api";
 
@@ -11,19 +11,10 @@ const STATUS_OPTIONS: { value: EquipmentStatus; label: string }[] = [
   { value: "DECOMMISSIONED", label: "Dado de baja" },
 ];
 
-const COMPONENT_TYPES: { value: ComponentType; label: string }[] = [
-  { value: "RAM", label: "RAM" },
-  { value: "CPU", label: "CPU" },
-  { value: "DISK", label: "Disco" },
-  { value: "GPU", label: "GPU" },
-  { value: "PSU", label: "Fuente" },
-  { value: "MOTHERBOARD", label: "Placa madre" },
-  { value: "OTHER", label: "Otro" },
-];
-
 const props = defineProps<{
   equipment?: Equipment | null;
   loading?: boolean;
+  clientId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -32,10 +23,11 @@ const emit = defineEmits<{
 }>();
 
 const inventoryStore = useInventoryStore();
-const activeTab = ref<"datos" | "componentes" | "licencia">("datos");
+const activeTab = ref<"datos" | "componentes">("datos");
 const showCategoryDialog = ref(false);
 const newCategoryName = ref("");
 const newCategoryIsComputer = ref(false);
+const clientSoftware = ref<Software[]>([]);
 
 // Components state
 const components = ref<EquipmentComponent[]>([]);
@@ -55,10 +47,7 @@ const form = ref({
   assignedTo: "",
   status: "ACTIVE" as EquipmentStatus,
   categoryId: null as string | null,
-  hasLicense: false,
-  licenseType: "",
-  licenseExpiresAt: "",
-  licenseNotes: "",
+  softwareId: null as string | null,
 });
 
 const errors = ref<Record<string, string>>({});
@@ -81,12 +70,7 @@ watch(
         assignedTo: eq.assignedTo ?? "",
         status: eq.status,
         categoryId: eq.categoryId ?? null,
-        hasLicense: eq.hasLicense ?? false,
-        licenseType: eq.licenseType ?? "",
-        licenseExpiresAt: eq.licenseExpiresAt
-          ? new Date(eq.licenseExpiresAt).toISOString().split("T")[0]
-          : "",
-        licenseNotes: eq.licenseNotes ?? "",
+        softwareId: eq.softwareId ?? null,
       };
 
       // Load components if editing
@@ -105,6 +89,24 @@ watch(
   { immediate: true }
 );
 
+// Load client software when clientId changes
+watch(
+  () => props.clientId,
+  async (cid) => {
+    if (cid) {
+      try {
+        const { data } = await api.get<{ software: Software[] }>(`/clients/${cid}/software`);
+        clientSoftware.value = data.software;
+      } catch {
+        clientSoftware.value = [];
+      }
+    } else {
+      clientSoftware.value = [];
+    }
+  },
+  { immediate: true }
+);
+
 const isEditing = computed(() => !!props.equipment);
 
 const selectedCategory = computed(() => {
@@ -115,6 +117,25 @@ const selectedCategory = computed(() => {
 const showComponentsTab = computed(() => {
   return selectedCategory.value?.isComputer ?? false;
 });
+
+function getSoftwareExpirationColor(expiresAt: string): string {
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysUntil < 30) return "text-red-600";
+  if (daysUntil < 90) return "text-amber-600";
+  return "text-green-600";
+}
+
+function getSoftwareExpirationLabel(expiresAt: string): string {
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysUntil < 0) return "vencida";
+  if (daysUntil < 30) return `vence en ${daysUntil}d`;
+  if (daysUntil < 90) return `vence en ${Math.floor(daysUntil / 30)}m`;
+  return `vence en ${Math.floor(daysUntil / 30)}m`;
+}
 
 function validate(): boolean {
   errors.value = {};
@@ -154,19 +175,8 @@ function handleSubmit() {
   // Category
   data.categoryId = form.value.categoryId || null;
 
-  // License
-  data.hasLicense = form.value.hasLicense;
-  if (form.value.hasLicense) {
-    data.licenseType = form.value.licenseType || null;
-    data.licenseExpiresAt = form.value.licenseExpiresAt
-      ? new Date(form.value.licenseExpiresAt).toISOString()
-      : null;
-    data.licenseNotes = form.value.licenseNotes.trim() || null;
-  } else {
-    data.licenseType = null;
-    data.licenseExpiresAt = null;
-    data.licenseNotes = null;
-  }
+  // Software
+  data.softwareId = form.value.softwareId || null;
 
   // Include components for the parent to handle
   data._components = components.value;
@@ -279,20 +289,6 @@ function removeComponent(id: string) {
         >
           Componentes
           <span v-if="!showComponentsTab" class="text-xs ml-1">(solo computadoras)</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="activeTab === 'licencia'"
-          :class="[
-            'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap',
-            activeTab === 'licencia'
-              ? 'text-primary-700 border-b-2 border-primary-600 bg-primary-50/50'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
-          ]"
-          @click="activeTab = 'licencia'"
-        >
-          Licencia
         </button>
       </nav>
     </div>
@@ -428,6 +424,32 @@ function removeComponent(id: string) {
           </div>
         </div>
       </fieldset>
+
+      <!-- Software instalado -->
+      <div>
+        <label for="eq-software" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Software instalado
+          <span class="text-slate-400 font-normal">(opcional)</span>
+        </label>
+        <select
+          id="eq-software"
+          v-model="form.softwareId"
+          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option :value="null">Sin software asignado</option>
+          <option
+            v-for="sw in clientSoftware"
+            :key="sw.id"
+            :value="sw.id"
+          >
+            {{ sw.name }} — {{ getSoftwareExpirationLabel(sw.expiresAt) }}
+          </option>
+        </select>
+        <p v-if="clientSoftware.length === 0 && clientId" class="mt-1.5 text-xs text-slate-500">
+          Este cliente no tiene software registrado. Creá uno desde la pestaña Software del cliente.
+        </p>
+      </div>
     </div>
 
     <!-- Tab: Componentes -->
@@ -561,99 +583,6 @@ function removeComponent(id: string) {
           </div>
         </div>
       </Teleport>
-    </div>
-
-    <!-- Tab: Licencia -->
-    <div v-if="activeTab === 'licencia'" class="space-y-4">
-      <!-- Toggle -->
-      <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4">
-        <div>
-          <p class="text-sm font-medium text-slate-700">¿Tiene licencia asignada?</p>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Activa si este equipo tiene software con licencia
-          </p>
-        </div>
-        <button
-          type="button"
-          :class="[
-            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-            form.hasLicense ? 'bg-primary-600' : 'bg-slate-300',
-          ]"
-          @click="form.hasLicense = !form.hasLicense"
-        >
-          <span
-            :class="[
-              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-              form.hasLicense ? 'translate-x-6' : 'translate-x-1',
-            ]"
-          />
-        </button>
-      </div>
-
-      <!-- License fields -->
-      <div v-if="form.hasLicense" class="space-y-4">
-        <div>
-          <label for="eq-license-type" class="block text-sm font-medium text-slate-700 mb-1.5">
-            Tipo de licencia
-          </label>
-          <input
-            id="eq-license-type"
-            v-model="form.licenseType"
-            type="text"
-            class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="ej: OFFICE, NORTON, AUTOCAD..."
-          />
-        </div>
-
-        <div>
-          <label for="eq-license-expires" class="block text-sm font-medium text-slate-700 mb-1.5">
-            Fecha de vencimiento
-          </label>
-          <input
-            id="eq-license-expires"
-            v-model="form.licenseExpiresAt"
-            type="date"
-            class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
-        </div>
-
-        <div>
-          <label for="eq-license-notes" class="block text-sm font-medium text-slate-700 mb-1.5">
-            Notas
-          </label>
-          <textarea
-            id="eq-license-notes"
-            v-model="form.licenseNotes"
-            rows="3"
-            class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Información adicional sobre la licencia..."
-          />
-        </div>
-      </div>
-
-      <!-- No license message -->
-      <div v-else class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-        <svg
-          class="w-10 h-10 text-green-400 mx-auto mb-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <p class="text-green-700 font-medium">Sin licencias por el momento</p>
-        <p class="text-sm text-green-600 mt-1">
-          Activa el interruptor de arriba si necesitas registrar una licencia.
-        </p>
-      </div>
     </div>
 
     <!-- Actions -->

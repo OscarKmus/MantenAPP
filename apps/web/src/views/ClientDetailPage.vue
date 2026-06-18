@@ -420,6 +420,7 @@ const nextMaintenanceDisplay = computed(() => {
         <EquipmentList
           :equipment="equipmentStore.equipment"
           :loading="equipmentStore.loading"
+          :client-id="clientId"
           @create="handleCreateEquipment"
           @update="handleUpdateEquipment"
           @delete="handleDeleteEquipment"

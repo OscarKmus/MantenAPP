@@ -77,10 +77,7 @@ export interface UpdateEquipmentRequest {
   assignedTo?: string;
   status?: "ACTIVE" | "INACTIVE" | "UNDER_MAINTENANCE" | "DECOMMISSIONED";
   categoryId?: string | null;
-  hasLicense?: boolean;
-  licenseType?: string | null;
-  licenseExpiresAt?: string | null;
-  licenseNotes?: string | null;
+  softwareId?: string | null;
 }
 
 export interface EquipmentListResponse {
