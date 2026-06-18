@@ -6,6 +6,7 @@ import StepIndicator from "@/components/maintenance/StepIndicator.vue";
 import ItemCard from "@/components/maintenance/ItemCard.vue";
 import PhotoUpload from "@/components/maintenance/PhotoUpload.vue";
 import SignaturePad from "@/components/maintenance/SignaturePad.vue";
+import PdfStatus from "@/components/maintenance/PdfStatus.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -19,6 +20,7 @@ const activeItemIndex = ref(0);
 const signaturePadRef = ref<InstanceType<typeof SignaturePad> | null>(null);
 const closing = ref(false);
 const closeError = ref<string | null>(null);
+const pdfPath = ref<string | null>(null);
 
 onMounted(async () => {
   // Try to hydrate from session
@@ -109,7 +111,8 @@ async function handleClose() {
   closeError.value = null;
 
   try {
-    await draftStore.closeMaintenance();
+    const result = await draftStore.closeMaintenance();
+    pdfPath.value = result?.pdfPath ?? null;
     draftStore.goToStep(3);
   } catch (err: any) {
     closeError.value = err.response?.data?.error || "Error al cerrar la mantención";
@@ -406,7 +409,7 @@ function handleGoToStep(step: number) {
           La mantención ha sido registrada exitosamente con firma digital.
         </p>
 
-        <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 mb-8 text-left max-w-sm mx-auto">
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-5 mb-6 text-left max-w-sm mx-auto">
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
               <span class="text-slate-500">Equipos revisados:</span>
@@ -420,16 +423,21 @@ function handleGoToStep(step: number) {
               <span class="text-slate-500">Firma:</span>
               <span class="font-medium text-green-700">Capturada</span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">PDF:</span>
-              <span class="font-medium text-amber-600">Próximamente (Slice 4)</span>
-            </div>
           </div>
         </div>
 
+        <!-- PDF Status -->
+        <div class="max-w-sm mx-auto mb-6">
+          <PdfStatus
+            :maintenance-id="maintenanceId"
+            :pdf-path="pdfPath"
+            @update:pdf-path="pdfPath = $event"
+          />
+        </div>
+
         <button
-          class="px-6 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl
-                 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          class="px-6 py-3 bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl
+                 hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
           @click="handleBackToClient"
         >
           Volver al cliente

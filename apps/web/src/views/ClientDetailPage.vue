@@ -5,8 +5,9 @@ import { useClientStore } from "@/stores/clients";
 import { useEquipmentStore } from "@/stores/equipment";
 import EquipmentList from "@/components/equipment/EquipmentList.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
+import PdfStatus from "@/components/maintenance/PdfStatus.vue";
 import api from "@/lib/api";
-import type { Software, LicenseType } from "@mantenti/types";
+import type { Software, LicenseType, Maintenance } from "@mantenti/types";
 
 const route = useRoute();
 const router = useRouter();
@@ -27,6 +28,9 @@ const softwareForm = ref({
   notes: "",
 });
 
+const latestMaintenance = ref<(Maintenance & { _count?: { items: number } }) | null>(null);
+const latestMaintenanceLoading = ref(false);
+
 const clientId = computed(() => route.params.id as string);
 const client = computed(() => clientStore.currentClient);
 
@@ -41,6 +45,7 @@ onMounted(async () => {
   await clientStore.fetchClient(clientId.value);
   await equipmentStore.fetchEquipment(clientId.value);
   await fetchSoftware();
+  await fetchLatestMaintenance();
 });
 
 // Watch for route param changes
@@ -48,6 +53,7 @@ watch(clientId, async (id) => {
   await clientStore.fetchClient(id);
   await equipmentStore.fetchEquipment(id);
   await fetchSoftware();
+  await fetchLatestMaintenance();
 });
 
 async function fetchSoftware() {
@@ -61,6 +67,22 @@ async function fetchSoftware() {
     softwareList.value = [];
   } finally {
     softwareLoading.value = false;
+  }
+}
+
+async function fetchLatestMaintenance() {
+  latestMaintenanceLoading.value = true;
+  try {
+    const { data } = await api.get<{ maintenances: Maintenance[] }>(
+      `/maintenances/client/${clientId.value}?limit=1`
+    );
+    const latest = data.maintenances?.[0] ?? null;
+    // Only show if it's a closed maintenance
+    latestMaintenance.value = latest?.status === "CLOSED" ? latest : null;
+  } catch {
+    latestMaintenance.value = null;
+  } finally {
+    latestMaintenanceLoading.value = false;
   }
 }
 
@@ -412,6 +434,31 @@ const nextMaintenanceDisplay = computed(() => {
               </p>
             </div>
           </div>
+        </div>
+
+        <!-- Latest maintenance PDF -->
+        <div
+          v-if="latestMaintenance"
+          class="bg-white rounded-xl border border-slate-200 p-5"
+        >
+          <h3 class="font-semibold text-slate-800 mb-3">Último reporte</h3>
+          <div class="flex items-center gap-4 mb-4">
+            <div class="flex-1">
+              <p class="text-sm text-slate-600">
+                Cerrada el {{ new Date(latestMaintenance.closedAt!).toLocaleDateString("es", {
+                  day: "numeric", month: "long", year: "numeric"
+                }) }}
+              </p>
+              <p class="text-xs text-slate-400 mt-0.5">
+                {{ latestMaintenance._count?.items ?? "?" }} equipos revisados
+              </p>
+            </div>
+          </div>
+          <PdfStatus
+            :maintenance-id="latestMaintenance.id"
+            :pdf-path="latestMaintenance.pdfPath"
+            @update:pdf-path="latestMaintenance.pdfPath = $event as any"
+          />
         </div>
       </div>
 
