@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   metadataItem: {
-    width: "25%",
+    width: "33%",
     marginBottom: 4,
   },
   metadataLabel: {
@@ -153,31 +153,23 @@ const styles = StyleSheet.create({
   datesRow: {
     flexDirection: "row",
     marginTop: 8,
-    gap: 8,
+    gap: 12,
   },
-  dateBadge: {
-    padding: 6,
-    borderRadius: 4,
+  dateCard: {
     flex: 1,
+    padding: 10,
+    borderRadius: 6,
+    alignItems: "center",
   },
-  dateBadgeBase: {
-    backgroundColor: "#f1f5f9",
-  },
-  dateBadgeAgreed: {
-    backgroundColor: "#eff6ff",
-  },
-  dateBadgeEffective: {
-    backgroundColor: "#f0fdf4",
-  },
-  dateBadgeLabel: {
-    fontSize: 7,
+  dateCardLabel: {
+    fontSize: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  dateBadgeValue: {
-    fontSize: 9,
+  dateCardValue: {
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    marginTop: 2,
   },
   // ─── Equipment table ────────────────────────────────
   table: {
@@ -369,10 +361,6 @@ function hexToRgb(hex: string): string {
 
 // ─── Component ──────────────────────────────────────────
 export function MaintenanceReport({ data }: { data: ReportData }) {
-  const showAllDates =
-    data.client.nextMaintenanceBaseAt !== data.client.nextMaintenanceAgreedAt ||
-    data.client.nextMaintenanceBaseAt !== data.client.nextMaintenanceAt;
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -392,12 +380,6 @@ export function MaintenanceReport({ data }: { data: ReportData }) {
           <View style={styles.metadataItem}>
             <Text style={styles.metadataLabel}>N° Reporte</Text>
             <Text style={styles.metadataValue}>{data.reportNumber}</Text>
-          </View>
-          <View style={styles.metadataItem}>
-            <Text style={styles.metadataLabel}>Fecha</Text>
-            <Text style={styles.metadataValue}>
-              {formatDate(data.closedAt)}
-            </Text>
           </View>
           <View style={styles.metadataItem}>
             <Text style={styles.metadataLabel}>Técnico</Text>
@@ -440,38 +422,26 @@ export function MaintenanceReport({ data }: { data: ReportData }) {
           )}
 
           {/* Next maintenance dates */}
-          {data.client.nextMaintenanceAt && (
-            <View style={styles.datesRow}>
-              {showAllDates && data.client.nextMaintenanceBaseAt && (
-                <View style={[styles.dateBadge, styles.dateBadgeBase]}>
-                  <Text style={[styles.dateBadgeLabel, { color: TEXT_MUTED }]}>
-                    Base
-                  </Text>
-                  <Text style={[styles.dateBadgeValue, { color: TEXT_PRIMARY }]}>
-                    {formatDate(data.client.nextMaintenanceBaseAt)}
-                  </Text>
-                </View>
-              )}
-              {showAllDates && data.client.nextMaintenanceAgreedAt && (
-                <View style={[styles.dateBadge, styles.dateBadgeAgreed]}>
-                  <Text style={[styles.dateBadgeLabel, { color: "#2563eb" }]}>
-                    Acordada
-                  </Text>
-                  <Text style={[styles.dateBadgeValue, { color: "#1d4ed8" }]}>
-                    {formatDate(data.client.nextMaintenanceAgreedAt)}
-                  </Text>
-                </View>
-              )}
-              <View style={[styles.dateBadge, styles.dateBadgeEffective]}>
-                <Text style={[styles.dateBadgeLabel, { color: "#16a34a" }]}>
-                  {showAllDates ? "Efectiva" : "Próxima mantención"}
+          <View style={styles.datesRow}>
+            <View style={[styles.dateCard, { backgroundColor: BRAND_LIGHT }]}>
+              <Text style={[styles.dateCardLabel, { color: TEXT_SECONDARY }]}>
+                Fecha de esta mantención
+              </Text>
+              <Text style={[styles.dateCardValue, { color: BRAND_COLOR }]}>
+                {formatDate(data.closedAt)}
+              </Text>
+            </View>
+            {data.client.nextMaintenanceAt && (
+              <View style={[styles.dateCard, { backgroundColor: "#f0fdf4" }]}>
+                <Text style={[styles.dateCardLabel, { color: "#16a34a" }]}>
+                  Próxima mantención
                 </Text>
-                <Text style={[styles.dateBadgeValue, { color: "#15803d" }]}>
+                <Text style={[styles.dateCardValue, { color: "#15803d" }]}>
                   {formatDate(data.client.nextMaintenanceAt)}
                 </Text>
               </View>
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
         {/* ─── Equipment Table ─────────────────────── */}
