@@ -1,0 +1,159 @@
+import prisma from "../../lib/prisma";
+import { createError } from "../../middleware/error-handler";
+import type { CreateClientInput, UpdateClientInput } from "./clients.schema";
+
+function computeEffectiveDate(
+  baseAt: Date | null,
+  agreedAt: Date | null,
+  manualOverride: Date | null
+): Date | null {
+  return manualOverride ?? agreedAt ?? baseAt;
+}
+
+export async function listClients(query?: string) {
+  const where = query
+    ? {
+        name: { contains: query, mode: "insensitive" as const },
+      }
+    : {};
+
+  const clients = await prisma.client.findMany({
+    where,
+    orderBy: { name: "asc" },
+    include: {
+      _count: { select: { equipment: true } },
+    },
+  });
+
+  return clients.map(({ _count, ...client }) => ({
+    ...client,
+    equipmentCount: _count.equipment,
+  }));
+}
+
+export async function getClient(id: string) {
+  const client = await prisma.client.findUnique({
+    where: { id },
+    include: {
+      equipment: { orderBy: { name: "asc" } },
+      templates: { orderBy: { name: "asc" } },
+      _count: { select: { equipment: true } },
+    },
+  });
+
+  if (!client) {
+    throw createError(404, "Client not found");
+  }
+
+  const { _count, ...rest } = client;
+  return { ...rest, equipmentCount: _count.equipment };
+}
+
+export async function createClient(input: CreateClientInput) {
+  // Compute base date if frequency is provided
+  let nextMaintenanceBaseAt: Date | null = null;
+  if (input.frequencyDays) {
+    nextMaintenanceBaseAt = new Date();
+    nextMaintenanceBaseAt.setDate(nextMaintenanceBaseAt.getDate() + input.frequencyDays);
+  }
+
+  const client = await prisma.client.create({
+    data: {
+      name: input.name,
+      location: input.location,
+      contactName: input.contactName,
+      contactPhone: input.contactPhone,
+      contactEmail: input.contactEmail,
+      frequencyDays: input.frequencyDays,
+      nextMaintenanceBaseAt,
+      nextMaintenanceAt: nextMaintenanceBaseAt, // effective defaults to base
+    },
+  });
+
+  return client;
+}
+
+export async function updateClient(id: string, input: UpdateClientInput) {
+  const existing = await prisma.client.findUnique({ where: { id } });
+  if (!existing) {
+    throw createError(404, "Client not found");
+  }
+
+  // Recompute base if frequency changed
+  let nextMaintenanceBaseAt = existing.nextMaintenanceBaseAt;
+  if (input.frequencyDays !== undefined) {
+    if (input.frequencyDays === null) {
+      nextMaintenanceBaseAt = null;
+    } else {
+      // Recalculate from last closed maintenance or from now
+      const lastMaintenance = await prisma.maintenance.findFirst({
+        where: { clientId: id, status: "CLOSED" },
+        orderBy: { closedAt: "desc" },
+        select: { closedAt: true },
+      });
+
+      const baseDate = lastMaintenance?.closedAt ?? new Date();
+      nextMaintenanceBaseAt = new Date(baseDate);
+      nextMaintenanceBaseAt.setDate(nextMaintenanceBaseAt.getDate() + input.frequencyDays);
+    }
+  }
+
+  // Parse agreed date
+  let nextMaintenanceAgreedAt = existing.nextMaintenanceAgreedAt;
+  if (input.nextMaintenanceAgreedAt !== undefined) {
+    nextMaintenanceAgreedAt = input.nextMaintenanceAgreedAt
+      ? new Date(input.nextMaintenanceAgreedAt)
+      : null;
+  }
+
+  // Compute effective date
+  let nextMaintenanceAt: Date | null;
+  if (input.nextMaintenanceAt !== undefined) {
+    // Manual override takes precedence
+    nextMaintenanceAt = input.nextMaintenanceAt
+      ? new Date(input.nextMaintenanceAt)
+      : null;
+  } else {
+    // Recompute from existing override or agreed/base
+    nextMaintenanceAt = computeEffectiveDate(
+      nextMaintenanceBaseAt,
+      nextMaintenanceAgreedAt,
+      null // no new override — let agreed/base decide
+    );
+  }
+
+  const client = await prisma.client.update({
+    where: { id },
+    data: {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.location !== undefined && { location: input.location }),
+      ...(input.contactName !== undefined && { contactName: input.contactName }),
+      ...(input.contactPhone !== undefined && { contactPhone: input.contactPhone }),
+      ...(input.contactEmail !== undefined && { contactEmail: input.contactEmail }),
+      ...(input.frequencyDays !== undefined && { frequencyDays: input.frequencyDays }),
+      nextMaintenanceBaseAt,
+      nextMaintenanceAgreedAt,
+      nextMaintenanceAt,
+    },
+  });
+
+  return client;
+}
+
+export async function deleteClient(id: string) {
+  const existing = await prisma.client.findUnique({ where: { id } });
+  if (!existing) {
+    throw createError(404, "Client not found");
+  }
+
+  // Check for maintenance history
+  const maintenanceCount = await prisma.maintenance.count({
+    where: { clientId: id },
+  });
+
+  if (maintenanceCount > 0) {
+    throw createError(409, "Cannot delete client with maintenance history");
+  }
+
+  await prisma.client.delete({ where: { id } });
+}

@@ -5,6 +5,8 @@ import { getEnv } from "./config/env";
 import { errorHandler } from "./middleware/error-handler";
 import prisma from "./lib/prisma";
 import { authRouter } from "./modules/auth/auth.controller";
+import { clientsRouter } from "./modules/clients/clients.controller";
+import { equipmentRouter } from "./modules/equipment/equipment.controller";
 
 const env = getEnv();
 const app = express();
@@ -21,6 +23,8 @@ app.get("/api/health", (_req, res) => {
 
 // ─── Routes ─────────────────────────────────────────────
 app.use("/api/auth", authRouter);
+app.use("/api/clients", clientsRouter);
+app.use("/api", equipmentRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
