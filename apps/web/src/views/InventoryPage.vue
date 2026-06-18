@@ -80,6 +80,10 @@ function openEquipmentDetail(eq: Equipment) {
   showDetailModal.value = true;
 }
 
+function navigateToClient(clientId: string) {
+  router.push({ name: "client-detail", params: { id: clientId } });
+}
+
 function closeDetailModal() {
   showDetailModal.value = false;
   selectedEquipment.value = null;
@@ -302,11 +306,10 @@ const filteredSoftware = computed(() => inventoryStore.software);
           v-for="eq in filteredEquipment"
           :key="eq.id"
           class="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary-300
-                 hover:shadow-md transition-all cursor-pointer group"
-          @click="openEquipmentDetail(eq)"
+                 hover:shadow-md transition-all group"
         >
           <div class="flex items-start justify-between gap-3 mb-3">
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 cursor-pointer" @click="navigateToClient(eq.clientId)">
               <h3 class="font-semibold text-slate-800 truncate group-hover:text-primary-700 transition-colors">
                 {{ eq.name }}
               </h3>
@@ -314,14 +317,27 @@ const filteredSoftware = computed(() => inventoryStore.software);
                 {{ eq.category.name }}
               </p>
             </div>
-            <span
-              :class="[
-                'shrink-0 text-xs font-medium px-2 py-0.5 rounded-full',
-                STATUS_COLORS[eq.status],
-              ]"
-            >
-              {{ STATUS_LABELS[eq.status] }}
-            </span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span
+                :class="[
+                  'text-xs font-medium px-2 py-0.5 rounded-full',
+                  STATUS_COLORS[eq.status],
+                ]"
+              >
+                {{ STATUS_LABELS[eq.status] }}
+              </span>
+              <button
+                class="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                title="Ver detalle"
+                @click.stop="openEquipmentDetail(eq)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Info -->
@@ -392,6 +408,17 @@ const filteredSoftware = computed(() => inventoryStore.software);
                 Disco: {{ eq.disk }}
               </span>
             </div>
+          </div>
+
+          <!-- Ver en cliente button -->
+          <div class="mt-3 pt-3 border-t border-slate-100">
+            <button
+              class="w-full text-center text-xs font-medium text-primary-600 hover:text-primary-700
+                     hover:bg-primary-50 rounded-lg py-1.5 transition-colors"
+              @click="navigateToClient(eq.clientId)"
+            >
+              Ver en cliente
+            </button>
           </div>
         </div>
       </div>
