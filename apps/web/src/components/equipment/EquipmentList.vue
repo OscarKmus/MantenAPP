@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import type { Equipment, EquipmentStatus } from "@mantenti/types";
 import EquipmentForm from "./EquipmentForm.vue";
 
@@ -31,6 +31,8 @@ const emit = defineEmits<{
 const showForm = ref(false);
 const editingEquipment = ref<Equipment | null>(null);
 const statusFilter = ref<EquipmentStatus | "">("");
+const showDetailModal = ref(false);
+const selectedEquipment = ref<Equipment | null>(null);
 
 const filteredEquipment = ref<Equipment[]>([]);
 
@@ -42,13 +44,10 @@ function applyFilter() {
   }
 }
 
-// Watch for changes
-import { watch } from "vue";
 watch(() => props.equipment, applyFilter, { immediate: true });
 watch(statusFilter, applyFilter);
 
 function openCreate() {
-  console.log("[EquipmentList] openCreate called");
   editingEquipment.value = null;
   showForm.value = true;
 }
@@ -58,8 +57,17 @@ function openEdit(eq: Equipment) {
   showForm.value = true;
 }
 
+function openDetail(eq: Equipment) {
+  selectedEquipment.value = eq;
+  showDetailModal.value = true;
+}
+
+function closeDetailModal() {
+  showDetailModal.value = false;
+  selectedEquipment.value = null;
+}
+
 function handleSubmit(data: Record<string, unknown>) {
-  console.log("[EquipmentList] handleSubmit", data, "editing=", editingEquipment.value?.id);
   if (editingEquipment.value) {
     emit("update", editingEquipment.value.id, data);
   } else {
@@ -68,10 +76,6 @@ function handleSubmit(data: Record<string, unknown>) {
   showForm.value = false;
   editingEquipment.value = null;
 }
-
-// Debug: log when modal opens
-import { watch } from "vue";
-watch(showForm, (v) => console.log("[EquipmentList] modal showForm=", v));
 
 function handleDelete(eq: Equipment) {
   const typed = prompt(
@@ -161,14 +165,24 @@ function handleDelete(eq: Equipment) {
       <div
         v-for="eq in filteredEquipment"
         :key="eq.id"
-        class="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 transition-colors"
+        class="bg-white rounded-lg border border-slate-200 p-4 hover:border-primary-300
+               hover:shadow-md transition-all cursor-pointer group"
+        @click="openDetail(eq)"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <h4 class="font-medium text-slate-800 truncate">{{ eq.name }}</h4>
+              <h4 class="font-medium text-slate-800 truncate group-hover:text-primary-700 transition-colors">
+                {{ eq.name }}
+              </h4>
               <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', STATUS_COLORS[eq.status]]">
                 {{ STATUS_LABELS[eq.status] }}
+              </span>
+              <span
+                v-if="eq.category"
+                class="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full"
+              >
+                {{ eq.category.name }}
               </span>
             </div>
             <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -191,6 +205,15 @@ function handleDelete(eq: Equipment) {
                 {{ eq.assignedTo }}
               </span>
             </div>
+            <!-- License badge -->
+            <div v-if="eq.hasLicense" class="mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Licencia
+              </span>
+            </div>
           </div>
 
           <!-- Actions -->
@@ -199,7 +222,7 @@ function handleDelete(eq: Equipment) {
               class="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50
                      focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
               title="Editar"
-              @click="openEdit(eq)"
+              @click.stop="openEdit(eq)"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -209,7 +232,7 @@ function handleDelete(eq: Equipment) {
               class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50
                      focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
               title="Eliminar"
-              @click="handleDelete(eq)"
+              @click.stop="handleDelete(eq)"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -224,10 +247,10 @@ function handleDelete(eq: Equipment) {
     <Teleport to="body">
       <div
         v-if="showForm"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
         @click.self="showForm = false"
       >
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-6">
           <h2 class="text-xl font-bold text-slate-800 mb-5">
             {{ editingEquipment ? "Editar equipo" : "Nuevo equipo" }}
           </h2>
@@ -237,6 +260,166 @@ function handleDelete(eq: Equipment) {
             @submit="handleSubmit"
             @cancel="showForm = false"
           />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Detail Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showDetailModal && selectedEquipment"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+        @click.self="closeDetailModal"
+      >
+        <div
+          class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg
+                 max-h-[90vh] overflow-y-auto"
+        >
+          <!-- Header -->
+          <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl z-10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold text-slate-800">
+                {{ selectedEquipment.name }}
+              </h2>
+              <button
+                class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100
+                       focus:outline-none focus:ring-2 focus:ring-primary-500"
+                @click="closeDetailModal"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="px-6 py-4 space-y-5">
+            <!-- Status & Category -->
+            <div class="flex flex-wrap gap-2">
+              <span
+                :class="[
+                  'text-xs font-medium px-2.5 py-1 rounded-full',
+                  STATUS_COLORS[selectedEquipment.status],
+                ]"
+              >
+                {{ STATUS_LABELS[selectedEquipment.status] }}
+              </span>
+              <span
+                v-if="selectedEquipment.category"
+                class="text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full"
+              >
+                {{ selectedEquipment.category.name }}
+              </span>
+            </div>
+
+            <!-- Network & Identification -->
+            <div class="bg-slate-50 rounded-xl p-4">
+              <h3 class="text-sm font-semibold text-slate-700 mb-3">Red e identificación</h3>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p class="text-slate-500 text-xs">IP</p>
+                  <p class="text-slate-800 font-medium">{{ selectedEquipment.ip || "—" }}</p>
+                </div>
+                <div>
+                  <p class="text-slate-500 text-xs">MAC</p>
+                  <p class="text-slate-800 font-medium">{{ selectedEquipment.mac || "—" }}</p>
+                </div>
+                <div>
+                  <p class="text-slate-500 text-xs">Serie</p>
+                  <p class="text-slate-800 font-medium">{{ selectedEquipment.serial || "—" }}</p>
+                </div>
+                <div>
+                  <p class="text-slate-500 text-xs">Asignado a</p>
+                  <p class="text-slate-800 font-medium">{{ selectedEquipment.assignedTo || "—" }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- License Info -->
+            <div class="bg-slate-50 rounded-xl p-4">
+              <h3 class="text-sm font-semibold text-slate-700 mb-3">Licencia</h3>
+              <div v-if="selectedEquipment.hasLicense" class="space-y-2 text-sm">
+                <div>
+                  <p class="text-slate-500 text-xs">Tipo</p>
+                  <p class="text-slate-800 font-medium">{{ selectedEquipment.licenseType || "—" }}</p>
+                </div>
+                <div>
+                  <p class="text-slate-500 text-xs">Vencimiento</p>
+                  <p class="text-slate-800 font-medium">
+                    {{
+                      selectedEquipment.licenseExpiresAt
+                        ? new Date(selectedEquipment.licenseExpiresAt).toLocaleDateString("es")
+                        : "—"
+                    }}
+                  </p>
+                </div>
+                <div v-if="selectedEquipment.licenseNotes">
+                  <p class="text-slate-500 text-xs">Notas</p>
+                  <p class="text-slate-800">{{ selectedEquipment.licenseNotes }}</p>
+                </div>
+              </div>
+              <p v-else class="text-sm text-green-600 font-medium">
+                Sin licencias por el momento
+              </p>
+            </div>
+
+            <!-- Components -->
+            <div
+              v-if="
+                selectedEquipment.category?.isComputer &&
+                selectedEquipment.components &&
+                selectedEquipment.components.length > 0
+              "
+              class="bg-slate-50 rounded-xl p-4"
+            >
+              <h3 class="text-sm font-semibold text-slate-700 mb-3">Componentes</h3>
+              <div class="space-y-2">
+                <div
+                  v-for="comp in selectedEquipment.components"
+                  :key="comp.id"
+                  class="flex items-center justify-between bg-white rounded-lg px-3 py-2"
+                >
+                  <div>
+                    <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded mr-2">
+                      {{ comp.type }}
+                    </span>
+                    <span class="text-sm text-slate-800">{{ comp.name }}</span>
+                  </div>
+                  <span v-if="comp.specs" class="text-xs text-slate-500">{{ comp.specs }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="text-xs text-slate-400 space-y-1">
+              <p>Creado: {{ new Date(selectedEquipment.createdAt).toLocaleDateString("es") }}</p>
+              <p>Actualizado: {{ new Date(selectedEquipment.updatedAt).toLocaleDateString("es") }}</p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 rounded-b-2xl">
+            <div class="flex gap-3">
+              <button
+                class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-medium
+                       text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                @click="closeDetailModal"
+              >
+                Cerrar
+              </button>
+              <button
+                class="flex-1 px-4 py-2.5 rounded-lg bg-primary-600 text-sm font-semibold text-white
+                       hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                @click="
+                  closeDetailModal();
+                  openEdit(selectedEquipment!);
+                "
+              >
+                Editar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>
