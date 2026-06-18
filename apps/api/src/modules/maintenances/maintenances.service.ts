@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma";
 import { createError } from "../../middleware/error-handler";
 import { localStorage } from "../../services/storage/local.provider";
+import { generateMaintenancePdf } from "../../services/pdf/pdf.service";
 import type {
   CreateMaintenanceInput,
   UpdateMaintenanceInput,
@@ -240,7 +241,7 @@ export async function closeMaintenance(id: string, input: CloseMaintenanceInput)
       status: "CLOSED",
       signatureData: storagePath,
       closedAt: now,
-      // PDF generation is deferred to Slice 4
+      // PDF generated below (sync)
       pdfPath: null,
       pdfEngine: null,
     },
@@ -255,8 +256,20 @@ export async function closeMaintenance(id: string, input: CloseMaintenanceInput)
     },
   });
 
+  // Generate PDF synchronously. If it fails, log and continue — the user can
+  // regenerate manually. The DB has already been updated with the closure.
+  let pdfPath: string | null = null;
+  let pdfEngine: string | null = null;
+  try {
+    const result = await generateMaintenancePdf(id);
+    pdfPath = result.pdfPath;
+    pdfEngine = result.pdfEngine;
+  } catch (e) {
+    console.error(`[close] PDF generation failed for maintenance ${id}:`, e);
+  }
+
   // Recalculate next maintenance for the client if frequency is set
-  if (updated.client.frequencyDays) {
+  if (updated.client.frequencyDays != null) {
     const nextDate = new Date(now);
     nextDate.setDate(nextDate.getDate() + updated.client.frequencyDays);
 
@@ -266,6 +279,15 @@ export async function closeMaintenance(id: string, input: CloseMaintenanceInput)
         nextMaintenanceBaseAt: nextDate,
         nextMaintenanceAt: updated.client.nextMaintenanceAt ?? nextDate,
       },
+    });
+  }
+
+  // Reload with pdfPath set (or return as-is if PDF failed)
+  if (pdfPath) {
+    return prisma.maintenance.update({
+      where: { id },
+      data: { pdfPath, pdfEngine },
+      include: { items: { include: { equipment: true, actionType: true } }, client: true },
     });
   }
 
