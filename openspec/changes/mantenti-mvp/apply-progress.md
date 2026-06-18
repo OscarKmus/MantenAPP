@@ -1,88 +1,68 @@
-# Apply Progress: mantenti-mvp — Slice 1 (Foundation)
+# Apply Progress: mantenti-mvp
 
-## Status: COMPLETE
+## Slice 1: Foundation (Complete)
 
-## Tasks Completed
+All 15 tasks (1.1–1.15) completed in previous batch.
+- Monorepo setup, Prisma schema, Express API with JWT auth, Vue 3 frontend with login page
+- Commits: `33101d2` through `f56e216`
 
-| Task | Description | Status | Commit |
-|------|-------------|--------|--------|
-| 1.1 | Init monorepo: root package.json, pnpm-workspace.yaml, .gitignore, .env.example | ✅ | `33101d2` |
-| 1.2 | Create Prisma schema with all 10 models + enums | ✅ | `7a95eb9` |
-| 1.3 | Write seed script: 5 default action types | ✅ | `7a95eb9` |
-| 1.4 | Create shared types package: @mantenti/types | ✅ | `fc63f14` |
-| 1.5 | Bootstrap Express app with env config, cors, cookie-parser, error-handler | ✅ | `b6d0bf4` |
-| 1.6 | Create Prisma singleton client | ✅ | `b6d0bf4` |
-| 1.7 | Implement auth middleware: JWT from httpOnly cookie | ✅ | `b6d0bf4` |
-| 1.8 | Implement auth module: login/logout/me/refresh | ✅ | `b6d0bf4` |
-| 1.9 | Create validate middleware (Zod wrapper) | ✅ | `b6d0bf4` |
-| 1.10 | Add healthcheck route GET /api/health | ✅ | `b6d0bf4` |
-| 1.11 | Scaffold Vue 3 + Vite + Tailwind frontend | ✅ | `4c93d0b` |
-| 1.12 | Create axios API client + Pinia auth store | ✅ | `4c93d0b` |
-| 1.13 | Create Vue router with auth guard | ✅ | `4c93d0b` |
-| 1.14 | Build LoginPage.vue | ✅ | `4c93d0b` |
-| 1.15 | Build layout shell: AppHeader + AppNav | ✅ | `4c93d0b` |
+## Slice 2: Clients + Equipment CRUD (Complete)
 
-## Build Verification
+### Completed Tasks
+- [x] 2.1 Clients module: CRUD routes, service, Zod schema with 3-state next-maintenance model
+- [x] 2.2 Equipment module: CRUD routes under `/api/clients/:clientId/equipment`, status filter, 409 on history
+- [x] 2.3 Pinia stores: `clients.ts` (with search, filteredClients computed) and `equipment.ts`
+- [x] 2.4 `ClientListPage.vue`: responsive card grid, search bar, "+ Nuevo cliente" button, loading/error/empty states
+- [x] 2.5 `ClientCard.vue`: name, location, equipment count, next-maintenance badge with color coding
+- [x] 2.6 `ClientForm.vue`: full form with contact fieldset, frequency, 3-state maintenance dates (base/agreed/effective)
+- [x] 2.7 `ClientDetailPage.vue`: tabbed layout (Resumen, Equipos, Historial placeholder, Contacto placeholder)
+- [x] 2.8 `EquipmentList.vue`: filterable by status, card layout with edit/delete, empty/loading states
+- [x] 2.9 `EquipmentForm.vue`: all fields with IP/MAC validation, status dropdown
+- [x] 2.10 Router updated: `/clients` → `ClientListPage`, `/clients/:id` → `ClientDetailPage` with auth guard
 
-| Check | Result |
-|-------|--------|
-| pnpm install | ✅ Pass |
-| pnpm --filter api build | ✅ Pass |
-| pnpm --filter web build | ✅ Pass |
+### Commits
+| Hash | Message |
+|------|---------|
+| `b049459` | `feat(api): add clients and equipment modules with CRUD endpoints` |
+| `ef4950f` | `feat(web): add clients and equipment UI with stores, pages, and components` |
+| `c8358d8` | `chore(slice-2): mark tasks 2.1-2.10 complete` |
 
-## Actual Changed Lines
+### Files Changed
+| File | Lines | Action |
+|------|-------|--------|
+| `apps/api/src/index.ts` | +4 | Modified — registered clients + equipment routers |
+| `apps/api/src/modules/clients/clients.controller.ts` | 64 | Created |
+| `apps/api/src/modules/clients/clients.schema.ts` | 28 | Created |
+| `apps/api/src/modules/clients/clients.service.ts` | 159 | Created |
+| `apps/api/src/modules/equipment/equipment.controller.ts` | 84 | Created |
+| `apps/api/src/modules/equipment/equipment.schema.ts` | 59 | Created |
+| `apps/api/src/modules/equipment/equipment.service.ts` | 89 | Created |
+| `apps/web/src/stores/clients.ts` | 124 | Created |
+| `apps/web/src/stores/equipment.ts` | 90 | Created |
+| `apps/web/src/views/ClientListPage.vue` | 164 | Created (replaces ClientsPlaceholder) |
+| `apps/web/src/views/ClientDetailPage.vue` | 280 | Created |
+| `apps/web/src/components/clients/ClientCard.vue` | 92 | Created |
+| `apps/web/src/components/clients/ClientForm.vue` | 281 | Created |
+| `apps/web/src/components/equipment/EquipmentList.vue` | 229 | Created |
+| `apps/web/src/components/equipment/EquipmentForm.vue` | 213 | Created |
+| `apps/web/src/router/index.ts` | +8 | Modified — added client-detail route |
 
-1,671 lines (additions + deletions) vs ~870 forecast.
+**Actual changed lines**: ~1,967 (code only, excluding tasks.md)
+**Design forecast**: ~800 lines
+**Variance**: +146% — forms and detail page are more comprehensive than the rough estimate (3-state model UI, fieldset grouping, IP/MAC validation, tab system with placeholders).
 
-The increase comes from:
-- Shared types package includes ALL domain models and API DTOs (not just Slice 1), which is correct for a shared package
-- Prisma schema has all 10 models as designed
-- Login page includes full validation, loading states, error handling per UI/UX requirements
+### Build Verification
+- ✅ `pnpm --filter api build` — passes
+- ✅ `pnpm --filter web build` — passes (vue-tsc + vite)
 
-## Design Decisions Made
+### Deviations from Design
+None — implementation matches design. The action-types module (task 3.1) was correctly excluded from Slice 2 scope per the spec.
 
-1. **Argon2 over bcrypt** for password hashing (as specified in orchestrator prompt)
-2. **Tailwind CSS v4** with `@tailwindcss/vite` plugin (not v3 with PostCSS)
-3. **Vue Router lazy loading** for all route components
-4. **Axios interceptor** with automatic token refresh and failed queue
-5. **Express 5** (latest) instead of Express 4
-6. **IRouter type annotation** on authRouter to fix TypeScript build error with express-serve-static-core
+### Notes
+- Express 5 `req.params` typed as `string | string[]` — extracted with helper function
+- `ref<Record<string, string>>` syntax required (not `ref<Record<string, string>({})`)
+- Tailwind CSS v4 uses `@theme` directive in CSS instead of `tailwind.config.ts`
+- `ClientsPlaceholder.vue` still exists on disk but is no longer imported by the router
 
-## Files Created
-
-### Backend (apps/api)
-- `package.json`, `tsconfig.json`
-- `prisma/schema.prisma` (10 models, 4 enums)
-- `prisma/seed.ts` (5 default action types)
-- `src/index.ts` (Express bootstrap + healthcheck)
-- `src/config/env.ts` (Zod-validated env)
-- `src/lib/prisma.ts` (singleton client)
-- `src/middleware/auth.ts` (JWT from cookie)
-- `src/middleware/error-handler.ts` (Zod + JWT + AppError)
-- `src/middleware/validate.ts` (Zod request wrapper)
-- `src/modules/auth/auth.controller.ts` (login/logout/me/refresh routes)
-- `src/modules/auth/auth.service.ts` (argon2 + JWT logic)
-- `src/modules/auth/auth.schema.ts` (login Zod schema)
-
-### Frontend (apps/web)
-- `package.json`, `vite.config.ts`, `tsconfig.json`, `env.d.ts`, `index.html`
-- `src/main.ts`, `src/App.vue`, `src/app.css`
-- `src/router/index.ts` (auth guard, lazy routes)
-- `src/stores/auth.ts` (Pinia auth store)
-- `src/lib/api.ts` (axios + refresh interceptor)
-- `src/views/LoginPage.vue` (form, validation, loading, errors)
-- `src/views/ClientsPlaceholder.vue` (Slice 2 placeholder)
-- `src/components/layout/AppHeader.vue` (logo, user, logout)
-- `src/components/layout/AppNav.vue` (responsive sidebar)
-
-### Shared (packages/types)
-- `package.json`, `tsconfig.json`
-- `src/index.ts`, `src/models.ts`, `src/api.ts`
-
-### Root
-- `package.json`, `pnpm-workspace.yaml`, `.env.example`
-- `storage/{attachments,pdfs,signatures}/.gitkeep`
-
-## Next Steps
-
-Slice 2 — Clients + Equipment CRUD (PR 2)
+### Status
+10/10 tasks complete. Ready for verify.
