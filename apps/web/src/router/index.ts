@@ -38,6 +38,12 @@ const router = createRouter({
       component: () => import("@/views/MaintenanceFlowPage.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/inventory",
+      name: "inventory",
+      component: () => import("@/views/InventoryPage.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 
