@@ -40,3 +40,5 @@ uploads/
 
 # SDD / Gentle AI scratch
 .sdd-progress/
+# OpenCode conversation logs (auto-saved, not source)
+conversations/
