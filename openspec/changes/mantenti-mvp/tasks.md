@@ -254,6 +254,28 @@ Chain strategy: stacked-to-main
   - **Files**: `apps\web\src\views\ClientDetailPage.vue`
   - **Estimate**: 370 lines
 
+## Slice 4 Bug Fixes + Refactors (post-testing)
+
+- [x] 4.18 Fix Software `notes: null` validation error
+  - **Files**: `apps\api\src\modules\software\software.schema.ts`, `apps\web\src\views\ClientDetailPage.vue`
+  - **Notes**: Schema now accepts `nullable().optional()`. Frontend only sends notes/equipmentId when non-empty.
+
+- [x] 4.19 Replace Equipment license fields with softwareId FK
+  - **Files**: `apps\api\prisma\schema.prisma`, `apps\api\src\modules\equipment\equipment.schema.ts`, `equipment.service.ts`, `apps\web\src\components\equipment\EquipmentForm.vue`, `EquipmentList.vue`, `apps\web\src\views\InventoryPage.vue`, `packages\types\src\models.ts`, `api.ts`
+  - **Notes**: Removed hasLicense/licenseType/licenseExpiresAt/licenseNotes. Added softwareId FK. Equipment form now has 2 tabs (Datos, Componentes). Software dropdown in Datos tab loads client's software records.
+
+- [x] 4.20 Replace EquipmentComponent table with 3 string fields
+  - **Files**: `apps\api\prisma\schema.prisma`, `apps\api\src\modules\equipment-components\` (deleted), `apps\api\src\modules\equipment\equipment.schema.ts`, `equipment.service.ts`, `apps\api\src\index.ts`, `apps\web\src\components\equipment\EquipmentForm.vue`, `EquipmentList.vue`, `apps\web\src\views\InventoryPage.vue`, `packages\types\src\models.ts`, `api.ts`
+  - **Notes**: Removed EquipmentComponent model + ComponentType enum. Added processor/ram/disk string fields on Equipment. Components tab now shows 3 plain text inputs.
+
+- [x] 4.21 Inventory: navigate to client detail on equipment click
+  - **Files**: `apps\web\src\views\InventoryPage.vue`
+  - **Notes**: Clicking equipment name navigates to client detail. Eye icon opens detail modal. "Ver en cliente" button at bottom of each card.
+
+- [x] 4.22 Add manage-categories modal in equipment form
+  - **Files**: `apps\web\src\components\equipment\EquipmentForm.vue`, `apps\web\src\stores\inventory.ts`
+  - **Notes**: Gear icon next to category dropdown opens modal with edit/delete for each category.
+
 ---
 
 ## Slice 5: PDF + Templates (PR 5 — ~950 lines)
