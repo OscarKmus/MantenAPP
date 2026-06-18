@@ -12,7 +12,6 @@ import { maintenancesRouter } from "./modules/maintenances/maintenances.controll
 import { attachmentsRouter } from "./modules/attachments/attachments.controller";
 import { templatesRouter } from "./modules/templates/templates.controller";
 import { equipmentCategoriesRouter } from "./modules/equipment-categories/equipment-categories.controller";
-import { equipmentComponentsRouter } from "./modules/equipment-components/equipment-components.controller";
 import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
 
@@ -38,7 +37,6 @@ app.use("/api/maintenances", maintenancesRouter);
 app.use("/api", attachmentsRouter);
 app.use("/api", templatesRouter);
 app.use("/api/equipment-categories", equipmentCategoriesRouter);
-app.use("/api", equipmentComponentsRouter);
 app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
 

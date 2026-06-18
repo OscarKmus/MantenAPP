@@ -1,7 +1,7 @@
 import type {
   User, Client, Equipment, Maintenance, MaintenanceItem, Attachment,
   ActionType, Template, TemplateItem, Notification,
-  EquipmentCategory, EquipmentComponent, Software, InventoryItem,
+  EquipmentCategory, Software, InventoryItem,
 } from "./models";
 
 // ─── Auth ───────────────────────────────────────────────
@@ -78,6 +78,9 @@ export interface UpdateEquipmentRequest {
   status?: "ACTIVE" | "INACTIVE" | "UNDER_MAINTENANCE" | "DECOMMISSIONED";
   categoryId?: string | null;
   softwareId?: string | null;
+  processor?: string | null;
+  ram?: string | null;
+  disk?: string | null;
 }
 
 export interface EquipmentListResponse {
@@ -188,26 +191,6 @@ export interface UpdateEquipmentCategoryRequest {
 
 export interface EquipmentCategoryListResponse {
   categories: EquipmentCategory[];
-}
-
-// ─── Equipment Components ───────────────────────────────
-
-export interface CreateEquipmentComponentRequest {
-  type: string;
-  name: string;
-  specs?: string;
-  sortOrder?: number;
-}
-
-export interface UpdateEquipmentComponentRequest {
-  type?: string;
-  name?: string;
-  specs?: string | null;
-  sortOrder?: number;
-}
-
-export interface EquipmentComponentListResponse {
-  components: EquipmentComponent[];
 }
 
 // ─── Software ───────────────────────────────────────────

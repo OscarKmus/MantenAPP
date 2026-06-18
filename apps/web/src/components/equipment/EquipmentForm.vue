@@ -29,16 +29,6 @@ const newCategoryName = ref("");
 const newCategoryIsComputer = ref(false);
 const clientSoftware = ref<Software[]>([]);
 
-// Components state
-const components = ref<EquipmentComponent[]>([]);
-const editingComponent = ref<EquipmentComponent | null>(null);
-const showComponentForm = ref(false);
-const componentForm = ref({
-  type: "RAM" as ComponentType,
-  name: "",
-  specs: "",
-});
-
 const form = ref({
   name: "",
   ip: "",
@@ -48,6 +38,9 @@ const form = ref({
   status: "ACTIVE" as EquipmentStatus,
   categoryId: null as string | null,
   softwareId: null as string | null,
+  processor: "",
+  ram: "",
+  disk: "",
 });
 
 const errors = ref<Record<string, string>>({});
@@ -71,19 +64,10 @@ watch(
         status: eq.status,
         categoryId: eq.categoryId ?? null,
         softwareId: eq.softwareId ?? null,
+        processor: eq.processor ?? "",
+        ram: eq.ram ?? "",
+        disk: eq.disk ?? "",
       };
-
-      // Load components if editing
-      if (eq.id) {
-        try {
-          const { data } = await api.get<{ components: EquipmentComponent[] }>(
-            `/equipment/${eq.id}/components`
-          );
-          components.value = data.components;
-        } catch {
-          components.value = [];
-        }
-      }
     }
   },
   { immediate: true }
@@ -178,8 +162,13 @@ function handleSubmit() {
   // Software
   data.softwareId = form.value.softwareId || null;
 
-  // Include components for the parent to handle
-  data._components = components.value;
+  // Components (simple strings)
+  const processor = form.value.processor.trim();
+  if (processor) data.processor = processor;
+  const ram = form.value.ram.trim();
+  if (ram) data.ram = ram;
+  const disk = form.value.disk.trim();
+  if (disk) data.disk = disk;
 
   emit("submit", data);
 }
@@ -202,54 +191,7 @@ async function createCategory() {
 }
 
 function openAddComponent() {
-  editingComponent.value = null;
-  componentForm.value = { type: "RAM", name: "", specs: "" };
-  showComponentForm.value = true;
-}
-
-function openEditComponent(comp: EquipmentComponent) {
-  editingComponent.value = comp;
-  componentForm.value = {
-    type: comp.type,
-    name: comp.name,
-    specs: comp.specs ?? "",
-  };
-  showComponentForm.value = true;
-}
-
-function saveComponent() {
-  if (!componentForm.value.name.trim()) return;
-
-  if (editingComponent.value) {
-    // Update existing
-    const idx = components.value.findIndex((c) => c.id === editingComponent.value!.id);
-    if (idx !== -1) {
-      components.value[idx] = {
-        ...components.value[idx],
-        type: componentForm.value.type,
-        name: componentForm.value.name.trim(),
-        specs: componentForm.value.specs.trim() || null,
-      };
-    }
-  } else {
-    // Add new (temporary ID for UI)
-    components.value.push({
-      id: `temp-${Date.now()}`,
-      equipmentId: props.equipment?.id ?? "",
-      type: componentForm.value.type,
-      name: componentForm.value.name.trim(),
-      specs: componentForm.value.specs.trim() || null,
-      sortOrder: components.value.length,
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  showComponentForm.value = false;
-  editingComponent.value = null;
-}
-
-function removeComponent(id: string) {
-  components.value = components.value.filter((c) => c.id !== id);
+  // Deprecated - components are now simple string fields
 }
 </script>
 
@@ -454,135 +396,54 @@ function removeComponent(id: string) {
 
     <!-- Tab: Componentes -->
     <div v-if="activeTab === 'componentes'" class="space-y-4">
-      <div class="flex items-center justify-between">
-        <p class="text-sm text-slate-600">
-          Componentes de hardware de este equipo.
-        </p>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-sm
-                 font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          @click="openAddComponent"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Agregar
-        </button>
+      <p class="text-sm text-slate-600">
+        Especificaciones de hardware de este equipo.
+      </p>
+
+      <!-- Procesador -->
+      <div>
+        <label for="eq-processor" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Procesador
+        </label>
+        <input
+          id="eq-processor"
+          v-model="form.processor"
+          type="text"
+          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          placeholder="ej: Intel Core i7-12700"
+        />
       </div>
 
-      <!-- Components list -->
-      <div v-if="components.length === 0" class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-6 text-center">
-        <p class="text-sm text-slate-500">Sin componentes registrados</p>
+      <!-- RAM -->
+      <div>
+        <label for="eq-ram" class="block text-sm font-medium text-slate-700 mb-1.5">
+          RAM
+        </label>
+        <input
+          id="eq-ram"
+          v-model="form.ram"
+          type="text"
+          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          placeholder="ej: 16GB DDR4 3200MHz"
+        />
       </div>
 
-      <div v-else class="space-y-2">
-        <div
-          v-for="comp in components"
-          :key="comp.id"
-          class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-              {{ comp.type }}
-            </span>
-            <div>
-              <p class="text-sm font-medium text-slate-800">{{ comp.name }}</p>
-              <p v-if="comp.specs" class="text-xs text-slate-500">{{ comp.specs }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              class="p-1.5 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50"
-              @click="openEditComponent(comp)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
-              @click="removeComponent(comp.id)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <!-- Disco -->
+      <div>
+        <label for="eq-disk" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Disco
+        </label>
+        <input
+          id="eq-disk"
+          v-model="form.disk"
+          type="text"
+          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          placeholder="ej: 1TB NVMe SSD"
+        />
       </div>
-
-      <!-- Component form dialog -->
-      <Teleport to="body">
-        <div
-          v-if="showComponentForm"
-          class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40"
-          @click.self="showComponentForm = false"
-        >
-          <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">
-              {{ editingComponent ? "Editar componente" : "Agregar componente" }}
-            </h3>
-            <div class="space-y-3">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                <select
-                  v-model="componentForm.type"
-                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option v-for="t in COMPONENT_TYPES" :key="t.value" :value="t.value">
-                    {{ t.label }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                <input
-                  v-model="componentForm.name"
-                  type="text"
-                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="ej: Corsair Vengeance 16GB"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">
-                  Especificaciones
-                  <span class="text-slate-400 font-normal">(opcional)</span>
-                </label>
-                <input
-                  v-model="componentForm.specs"
-                  type="text"
-                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="ej: DDR4 3200MHz"
-                />
-              </div>
-            </div>
-            <div class="flex gap-3 mt-5">
-              <button
-                type="button"
-                class="flex-1 px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium
-                       text-slate-700 hover:bg-slate-50"
-                @click="showComponentForm = false"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                class="flex-1 px-4 py-2 rounded-lg bg-primary-600 text-sm font-semibold text-white
-                       hover:bg-primary-700"
-                @click="saveComponent"
-              >
-                {{ editingComponent ? "Guardar" : "Agregar" }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Teleport>
     </div>
 
     <!-- Actions -->

@@ -21,7 +21,6 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus) 
     orderBy: { name: "asc" },
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      components: { orderBy: { sortOrder: "asc" } },
       software: true,
     },
   });
@@ -32,7 +31,6 @@ export async function getEquipment(id: string) {
     where: { id },
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      components: { orderBy: { sortOrder: "asc" } },
       software: true,
     },
   });
@@ -68,13 +66,15 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     status: input.status ?? "ACTIVE",
     categoryId: input.categoryId ?? null,
     softwareId: input.softwareId ?? null,
+    processor: input.processor || null,
+    ram: input.ram || null,
+    disk: input.disk || null,
   };
 
   return prisma.equipment.create({
     data,
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      components: true,
       software: true,
     },
   });
@@ -103,13 +103,15 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
   if (input.status !== undefined) data.status = input.status;
   if (input.categoryId !== undefined) data.categoryId = input.categoryId;
   if (input.softwareId !== undefined) data.softwareId = input.softwareId;
+  if (input.processor !== undefined) data.processor = input.processor;
+  if (input.ram !== undefined) data.ram = input.ram;
+  if (input.disk !== undefined) data.disk = input.disk;
 
   return prisma.equipment.update({
     where: { id },
     data,
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      components: true,
       software: true,
     },
   });

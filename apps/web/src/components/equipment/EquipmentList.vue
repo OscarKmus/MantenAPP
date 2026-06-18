@@ -368,27 +368,22 @@ function handleDelete(eq: Equipment) {
 
             <!-- Components -->
             <div
-              v-if="
-                selectedEquipment.category?.isComputer &&
-                selectedEquipment.components &&
-                selectedEquipment.components.length > 0
-              "
+              v-if="selectedEquipment.processor || selectedEquipment.ram || selectedEquipment.disk"
               class="bg-slate-50 rounded-xl p-4"
             >
               <h3 class="text-sm font-semibold text-slate-700 mb-3">Componentes</h3>
-              <div class="space-y-2">
-                <div
-                  v-for="comp in selectedEquipment.components"
-                  :key="comp.id"
-                  class="flex items-center justify-between bg-white rounded-lg px-3 py-2"
-                >
-                  <div>
-                    <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded mr-2">
-                      {{ comp.type }}
-                    </span>
-                    <span class="text-sm text-slate-800">{{ comp.name }}</span>
-                  </div>
-                  <span v-if="comp.specs" class="text-xs text-slate-500">{{ comp.specs }}</span>
+              <div class="space-y-2 text-sm">
+                <div v-if="selectedEquipment.processor" class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+                  <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">CPU</span>
+                  <span class="text-slate-800">{{ selectedEquipment.processor }}</span>
+                </div>
+                <div v-if="selectedEquipment.ram" class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+                  <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">RAM</span>
+                  <span class="text-slate-800">{{ selectedEquipment.ram }}</span>
+                </div>
+                <div v-if="selectedEquipment.disk" class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+                  <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Disco</span>
+                  <span class="text-slate-800">{{ selectedEquipment.disk }}</span>
                 </div>
               </div>
             </div>

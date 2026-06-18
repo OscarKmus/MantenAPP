@@ -46,6 +46,9 @@ export const createEquipmentSchema = z.object({
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
   softwareId: z.string().uuid().nullable().optional(),
+  processor: optionalString(200),
+  ram: optionalString(200),
+  disk: optionalString(200),
 });
 
 export const updateEquipmentSchema = z.object({
@@ -57,6 +60,9 @@ export const updateEquipmentSchema = z.object({
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
   softwareId: z.string().uuid().nullable().optional(),
+  processor: optionalString(200),
+  ram: optionalString(200),
+  disk: optionalString(200),
 });
 
 export const equipmentQuerySchema = z.object({

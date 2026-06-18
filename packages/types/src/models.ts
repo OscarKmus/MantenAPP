@@ -10,15 +10,6 @@ export type MaintenanceStatus = "DRAFT" | "IN_PROGRESS" | "CLOSED";
 
 export type AttachmentScope = "MAINTENANCE" | "MAINTENANCE_ITEM";
 
-export type ComponentType =
-  | "RAM"
-  | "CPU"
-  | "DISK"
-  | "GPU"
-  | "PSU"
-  | "MOTHERBOARD"
-  | "OTHER";
-
 export type LicenseType =
   | "OFFICE"
   | "NORTON"
@@ -62,12 +53,14 @@ export interface Equipment {
   mac: string | null;
   serial: string | null;
   assignedTo: string | null;
+  processor: string | null;
+  ram: string | null;
+  disk: string | null;
   status: EquipmentStatus;
   createdAt: string;
   updatedAt: string;
   category?: EquipmentCategory | null;
   software?: Software | null;
-  components?: EquipmentComponent[];
 }
 
 export interface ActionType {
@@ -161,16 +154,6 @@ export interface EquipmentCategory {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface EquipmentComponent {
-  id: string;
-  equipmentId: string;
-  type: ComponentType;
-  name: string;
-  specs: string | null;
-  sortOrder: number;
-  createdAt: string;
 }
 
 export interface Software {
