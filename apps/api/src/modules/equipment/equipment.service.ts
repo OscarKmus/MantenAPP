@@ -1,5 +1,6 @@
 import prisma from "../../lib/prisma";
 import { createError } from "../../middleware/error-handler";
+import { localStorage } from "../../services/storage/local.provider";
 import type { CreateEquipmentInput, UpdateEquipmentInput } from "./equipment.schema";
 import type { EquipmentStatus } from "@mantenti/types";
 
@@ -76,14 +77,36 @@ export async function deleteEquipment(id: string) {
     throw createError(404, "Equipment not found");
   }
 
-  // Check for maintenance item references
-  const itemCount = await prisma.maintenanceItem.count({
+  // The DB has onDelete: Cascade for MaintenanceItem. The only manual cleanup
+  // needed is polymorphic Attachment rows for those items.
+
+  const items = await prisma.maintenanceItem.findMany({
     where: { equipmentId: id },
+    select: { id: true },
+  });
+  const itemIds = items.map((i) => i.id);
+
+  const attachments = await prisma.attachment.findMany({
+    where: {
+      scope: "MAINTENANCE_ITEM",
+      parentId: { in: itemIds },
+    },
+    select: { id: true, storagePath: true },
   });
 
-  if (itemCount > 0) {
-    throw createError(409, "Cannot delete equipment with maintenance history");
-  }
+  await prisma.$transaction([
+    prisma.attachment.deleteMany({
+      where: { id: { in: attachments.map((a) => a.id) } },
+    }),
+    prisma.equipment.delete({ where: { id } }),
+  ]);
 
-  await prisma.equipment.delete({ where: { id } });
+  // Best-effort file cleanup
+  for (const att of attachments) {
+    try {
+      await localStorage.delete(att.storagePath);
+    } catch {
+      // ignore
+    }
+  }
 }

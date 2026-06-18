@@ -51,14 +51,14 @@ model Equipment {
   clientId   String          @map("client_id")
   name       String
   ip         String?
-  mac        String?
+  mac         String?
   serial     String?
   assignedTo String?         @map("assigned_to")
   status     EquipmentStatus @default(ACTIVE)
   createdAt  DateTime        @default(now()) @map("created_at")
   updatedAt  DateTime        @updatedAt @map("updated_at")
 
-  client           Client            @relation(fields: [clientId], references: [id])
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   maintenanceItems MaintenanceItem[]
   templateItems    TemplateItem[]
 
@@ -101,7 +101,7 @@ model Maintenance {
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
 
-  client      Client            @relation(fields: [clientId], references: [id])
+  client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   technician  User              @relation(fields: [technicianId], references: [id])
   items       MaintenanceItem[]
 
@@ -128,7 +128,7 @@ model MaintenanceItem {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   maintenance Maintenance  @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
-  equipment   Equipment    @relation(fields: [equipmentId], references: [id])
+  equipment   Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   actionType  ActionType?  @relation(fields: [actionTypeId], references: [id])
 
   @@unique([maintenanceId, equipmentId])
@@ -164,7 +164,7 @@ model Template {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  client Client         @relation(fields: [clientId], references: [id])
+  client Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   items  TemplateItem[]
 
   @@unique([clientId, name])
@@ -179,7 +179,7 @@ model TemplateItem {
   sortOrder   Int    @default(0) @map("sort_order")
 
   template  Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 
   @@unique([templateId, equipmentId])
   @@map("template_items")

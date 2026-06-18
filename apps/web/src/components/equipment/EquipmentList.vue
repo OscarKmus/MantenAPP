@@ -74,8 +74,17 @@ import { watch } from "vue";
 watch(showForm, (v) => console.log("[EquipmentList] modal showForm=", v));
 
 function handleDelete(eq: Equipment) {
-  if (confirm(`¿Eliminar "${eq.name}"?\n\nSi tiene historial de mantenciones, no se podrá borrar.`)) {
+  const typed = prompt(
+    `⚠️ Eliminación definitiva\n\n` +
+    `Vas a eliminar el equipo "${eq.name}".\n\n` +
+    `Se borrarán también TODAS sus mantenciones y adjuntos asociados.\n\n` +
+    `Esta acción no se puede deshacer.\n\n` +
+    `Escribí exactamente el nombre del equipo para confirmar:`
+  );
+  if (typed === eq.name) {
     emit("delete", eq.id);
+  } else if (typed !== null) {
+    alert("El nombre no coincide. No se eliminó nada.");
   }
 }
 </script>

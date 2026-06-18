@@ -29,8 +29,17 @@ function closeMenu() {
 
 function handleDelete(e: Event) {
   e.stopPropagation();
-  if (confirm(`¿Eliminar el cliente "${props.client.name}"?\n\nEsta acción no se puede deshacer.`)) {
+  const typed = prompt(
+    `⚠️ Eliminación definitiva\n\n` +
+    `Vas a eliminar el cliente "${props.client.name}".\n\n` +
+    `Se borrarán también TODOS sus equipos, mantenciones, adjuntos e historial.\n\n` +
+    `Esta acción no se puede deshacer.\n\n` +
+    `Escribí exactamente el nombre del cliente para confirmar:`
+  );
+  if (typed === props.client.name) {
     emit("delete", props.client.id);
+  } else if (typed !== null) {
+    alert("El nombre no coincide. No se eliminó nada.");
   }
   closeMenu();
 }

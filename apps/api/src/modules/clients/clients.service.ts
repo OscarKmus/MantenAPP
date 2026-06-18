@@ -1,5 +1,6 @@
 import prisma from "../../lib/prisma";
 import { createError } from "../../middleware/error-handler";
+import { localStorage } from "../../services/storage/local.provider";
 import type { CreateClientInput, UpdateClientInput } from "./clients.schema";
 
 function computeEffectiveDate(
@@ -146,33 +147,62 @@ export async function deleteClient(id: string) {
     throw createError(404, "Client not found");
   }
 
-  // Check for any related records that would block deletion.
-  // Postgres FK constraints are RESTRICT by default, so we surface a clear 409
-  // instead of letting Prisma throw a P2003 (which becomes a generic 500).
-  const [equipmentCount, maintenanceCount, templateCount] = await Promise.all([
-    prisma.equipment.count({ where: { clientId: id } }),
-    prisma.maintenance.count({ where: { clientId: id } }),
-    prisma.template.count({ where: { clientId: id } }),
+  // The DB has onDelete: Cascade for Equipment, Maintenance, and Template.
+  // The only manual cleanup needed is polymorphic Attachment rows (no FK relation).
+  // We collect the IDs first, then delete in a transaction, then clean up files.
+
+  const maintenances = await prisma.maintenance.findMany({
+    where: { clientId: id },
+    select: { id: true, signatureData: true },
+  });
+  const maintenanceIds = maintenances.map((m) => m.id);
+  const signaturePaths = maintenances.map((m) => m.signatureData).filter((p): p is string => !!p);
+
+  const items = await prisma.maintenanceItem.findMany({
+    where: {
+      OR: [
+        { maintenanceId: { in: maintenanceIds } },
+        { equipment: { clientId: id } },
+      ],
+    },
+    select: { id: true },
+  });
+  const itemIds = items.map((i) => i.id);
+
+  // Find attachments that will be orphaned
+  const attachments = await prisma.attachment.findMany({
+    where: {
+      OR: [
+        { scope: "MAINTENANCE", parentId: { in: maintenanceIds } },
+        { scope: "MAINTENANCE_ITEM", parentId: { in: itemIds } },
+      ],
+    },
+    select: { id: true, storagePath: true },
+  });
+
+  // Transaction: clean up attachment rows + delete client (cascade does the rest)
+  await prisma.$transaction([
+    prisma.attachment.deleteMany({
+      where: {
+        id: { in: attachments.map((a) => a.id) },
+      },
+    }),
+    prisma.client.delete({ where: { id } }),
   ]);
 
-  if (maintenanceCount > 0) {
-    throw createError(
-      409,
-      `No se puede eliminar: el cliente tiene ${maintenanceCount} mantención(es) registrada(s).`
-    );
+  // Best-effort file cleanup (after DB transaction)
+  for (const att of attachments) {
+    try {
+      await localStorage.delete(att.storagePath);
+    } catch {
+      // File may already be missing — ignore
+    }
   }
-  if (equipmentCount > 0) {
-    throw createError(
-      409,
-      `No se puede eliminar: el cliente tiene ${equipmentCount} equipo(s) registrado(s). Eliminá los equipos primero.`
-    );
+  for (const sigPath of signaturePaths) {
+    try {
+      await localStorage.delete(sigPath);
+    } catch {
+      // ignore
+    }
   }
-  if (templateCount > 0) {
-    throw createError(
-      409,
-      `No se puede eliminar: el cliente tiene ${templateCount} plantilla(s) registrada(s).`
-    );
-  }
-
-  await prisma.client.delete({ where: { id } });
 }
