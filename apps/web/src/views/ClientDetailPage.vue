@@ -146,13 +146,13 @@ async function handleSoftwareSubmit() {
     return;
   }
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     name: softwareForm.value.name.trim(),
     licenseType: softwareForm.value.licenseType,
     clientId: clientId.value,
-    equipmentId: softwareForm.value.equipmentId || null,
     expiresAt: new Date(softwareForm.value.expiresAt).toISOString(),
-    notes: softwareForm.value.notes.trim() || null,
+    ...(softwareForm.value.equipmentId && { equipmentId: softwareForm.value.equipmentId }),
+    ...(softwareForm.value.notes.trim() && { notes: softwareForm.value.notes.trim() }),
   };
 
   try {
