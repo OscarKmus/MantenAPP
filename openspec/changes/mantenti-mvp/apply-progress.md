@@ -1,111 +1,99 @@
-# Apply Progress: mantenti-mvp — Slice 3
+# Apply Progress: mantenti-mvp
 
-## Change: mantenti-mvp
-## Mode: Standard (no TDD)
-## Date: 2026-06-18
+## Slice 1: Foundation (PR 1) — COMPLETE
+All 15 tasks completed in previous sessions.
 
----
+## Slice 2: Clients + Equipment CRUD (PR 2) — COMPLETE
+All 10 tasks completed in previous sessions.
 
-## Slice 1: Foundation (Previous — Complete)
+## Slice 3: Maintenance Workflow + Attachments (PR 3) — COMPLETE
+All 11 tasks completed in previous sessions.
 
-All 15 tasks (1.1–1.15) completed. Commits: 33101d2 through f56e216.
+## Slice 4: Inventory (PR 4) — COMPLETE
 
-## Slice 2: Clients + Equipment CRUD (Previous — Complete)
+### Summary
+Implemented full inventory management system: equipment categories, hardware components, software licensing, and a unified inventory view.
 
-All 10 tasks (2.1–2.10) completed. Commits: b049459 through c8358d8.
+### Tasks Completed (17/17)
+- [x] 4.1 Add EquipmentCategory, EquipmentComponent, Software models + enums to Prisma schema
+- [x] 4.2 Extend Equipment model with categoryId, license fields, component/software relations
+- [x] 4.3 Run Prisma migration `inventory` + seed default categories
+- [x] 4.4 Implement equipment-categories module: full CRUD, 409 on delete if referenced
+- [x] 4.5 Implement equipment-components module: nested under equipment, CRUD
+- [x] 4.6 Implement software module: full CRUD, list by client/equipment
+- [x] 4.7 Extend equipment module: add category/license fields, include category+components in responses
+- [x] 4.8 Implement inventory endpoint: unified equipment+software with multi-filter support
+- [x] 4.9 Register all new routers in API index
+- [x] 4.10 Update shared types: EquipmentCategory, EquipmentComponent, Software, InventoryItem, API DTOs
+- [x] 4.11 Create Pinia inventory store with filters and fetch actions
+- [x] 4.12 Add "Inventario" sidebar link with icon
+- [x] 4.13 Build InventoryPage: equipment/software tabs, filters, search, cards/table
+- [x] 4.14 Add /inventory route to Vue router
+- [x] 4.15 Overhaul EquipmentForm with tabs: Datos, Componentes, Licencia
+- [x] 4.16 Make equipment cards clickable, add detail modal with @click.stop on edit/delete
+- [x] 4.17 Add Software tab to ClientDetailPage with CRUD
 
----
+### Files Created/Modified
 
-## Slice 3: Maintenance Workflow + Attachments (Current — Complete)
+**New files (API):**
+- `apps/api/prisma/migrations/20260618195016_inventory/migration.sql`
+- `apps/api/src/modules/equipment-categories/equipment-categories.schema.ts`
+- `apps/api/src/modules/equipment-categories/equipment-categories.service.ts`
+- `apps/api/src/modules/equipment-categories/equipment-categories.controller.ts`
+- `apps/api/src/modules/equipment-components/equipment-components.schema.ts`
+- `apps/api/src/modules/equipment-components/equipment-components.service.ts`
+- `apps/api/src/modules/equipment-components/equipment-components.controller.ts`
+- `apps/api/src/modules/software/software.schema.ts`
+- `apps/api/src/modules/software/software.service.ts`
+- `apps/api/src/modules/software/software.controller.ts`
+- `apps/api/src/modules/inventory/inventory.schema.ts`
+- `apps/api/src/modules/inventory/inventory.service.ts`
+- `apps/api/src/modules/inventory/inventory.controller.ts`
 
-### Completed Tasks
+**New files (Web):**
+- `apps/web/src/stores/inventory.ts`
+- `apps/web/src/views/InventoryPage.vue`
 
-- [x] 3.1 Implement action-types module: CRUD routes, inline create, 409 on used-type delete
-- [x] 3.2 Implement maintenances module: create (manual + template), get, update status/notes, update item, list
-- [x] 3.3 Implement attachments module: upload (multipart, scope+parentId), stream, delete; 10MB + 20-photo limits
-- [x] 3.4 Create storage abstraction + local filesystem provider
-- [x] 3.5 Create Pinia action-types store + maintenance-draft store
-- [x] 3.6 Build `MaintenanceStartPage.vue`: equipment selector (manual checkboxes) + template selector
-- [x] 3.7 Build `MaintenanceFlowPage.vue` + `StepIndicator.vue`: 4-step wizard (items → report → signature → done)
-- [x] 3.8 Build `ItemCard.vue`: per-item form with action type select (+ inline create), observations textarea
-- [x] 3.9 Build `PhotoUpload.vue`: client-side resize (1920px, JPEG 0.85), progress bar, 10MB validation
-- [x] 3.10 Add maintenance + attachment + action-type routes to Vue router
-- [x] 3.11 Create `storage/` directory structure (attachments/, pdfs/, signatures/) + .gitkeep
-
-### Files Changed
-
-| File | Action | What Was Done |
-|------|--------|---------------|
-| `apps/api/src/modules/action-types/action-types.schema.ts` | Created | Zod schemas for create/update action types |
-| `apps/api/src/modules/action-types/action-types.service.ts` | Created | CRUD service with 409 on used-type delete |
-| `apps/api/src/modules/action-types/action-types.controller.ts` | Created | Express routes for action types |
-| `apps/api/src/modules/maintenances/maintenances.schema.ts` | Created | Zod schemas for maintenance operations |
-| `apps/api/src/modules/maintenances/maintenances.service.ts` | Created | Full maintenance lifecycle: create, get, update, close, list |
-| `apps/api/src/modules/maintenances/maintenances.controller.ts` | Created | Express routes for maintenances |
-| `apps/api/src/modules/attachments/attachments.service.ts` | Created | Polymorphic attachment upload with 10MB/20-photo limits |
-| `apps/api/src/modules/attachments/attachments.controller.ts` | Created | Multipart upload routes + file serving with path traversal protection |
-| `apps/api/src/modules/templates/templates.schema.ts` | Created | Zod schemas for templates |
-| `apps/api/src/modules/templates/templates.service.ts` | Created | Full template CRUD with use-template endpoint |
-| `apps/api/src/modules/templates/templates.controller.ts` | Created | Express routes for templates |
-| `apps/api/src/services/storage/storage.provider.ts` | Created | Storage interface definition |
-| `apps/api/src/services/storage/local.provider.ts` | Created | Local filesystem storage with path traversal protection |
-| `apps/api/src/index.ts` | Modified | Registered all new route modules |
-| `apps/api/src/modules/clients/clients.controller.ts` | Modified | Added client maintenances listing endpoint |
-| `apps/api/package.json` | Modified | Added multer dependency |
-| `apps/web/src/stores/action-types.ts` | Created | Pinia store for action types CRUD |
-| `apps/web/src/stores/maintenance-draft.ts` | Created | Pinia store for in-progress maintenance with sessionStorage persistence |
-| `apps/web/src/composables/usePhotoResize.ts` | Created | Client-side photo resize (max 1920px, JPEG 0.85) |
-| `apps/web/src/components/maintenance/ActionTypeSelect.vue` | Created | Dropdown with color indicator + inline create |
-| `apps/web/src/components/maintenance/ItemCard.vue` | Created | Per-item form with action type, observations, photos |
-| `apps/web/src/components/maintenance/PhotoUpload.vue` | Created | Drag-drop + file picker with resize, progress, thumbnails |
-| `apps/web/src/components/maintenance/SignaturePad.vue` | Created | signature_pad canvas with touch support, clear, export |
-| `apps/web/src/components/maintenance/StepIndicator.vue` | Created | 4-step progress indicator |
-| `apps/web/src/views/MaintenanceStartPage.vue` | Created | Equipment/template selector to start maintenance |
-| `apps/web/src/views/MaintenanceFlowPage.vue` | Created | 4-step wizard: items → report → signature → done |
-| `apps/web/src/views/ClientDetailPage.vue` | Modified | Added "Iniciar mantención" button on Resumen tab |
-| `apps/web/src/router/index.ts` | Modified | Added maintenance-start and maintenance-flow routes |
-| `apps/web/package.json` | Modified | Added signature_pad dependency |
-| `storage/attachments/.gitkeep` | Created | Directory structure |
-| `storage/pdfs/.gitkeep` | Created | Directory structure |
-| `storage/signatures/.gitkeep` | Created | Directory structure |
+**Modified files:**
+- `apps/api/prisma/schema.prisma` — Added EquipmentCategory, EquipmentComponent, Software models + enums
+- `apps/api/prisma/seed.ts` — Added default equipment categories
+- `apps/api/src/index.ts` — Registered new routers
+- `apps/api/src/modules/equipment/equipment.schema.ts` — Added category/license fields
+- `apps/api/src/modules/equipment/equipment.service.ts` — Added category/license handling, includes
+- `apps/web/src/components/layout/AppNav.vue` — Added Inventario link
+- `apps/web/src/components/equipment/EquipmentForm.vue` — Complete overhaul with tabs
+- `apps/web/src/components/equipment/EquipmentList.vue` — Clickable cards + detail modal
+- `apps/web/src/views/ClientDetailPage.vue` — Added Software tab
+- `apps/web/src/router/index.ts` — Added /inventory route
+- `packages/types/src/models.ts` — Added new types
+- `packages/types/src/api.ts` — Added new DTOs
 
 ### Commits
-
-| Hash | Message |
-|------|---------|
-| `d3b7197` | feat(api): add action-types, maintenances, attachments, templates modules with storage abstraction |
-| `8503b72` | feat(web): add maintenance flow with multi-step UI, signature canvas, and photo upload |
-| `b3aaf86` | chore(slice-3): mark tasks 3.1-3.11 complete |
+1. `013c734` — chore(db): add inventory schema (category, components, software)
+2. `145b07e` — feat(api): add equipment-categories module with CRUD
+3. `03a631e` — feat(api): add equipment components module nested under equipment
+4. `2b5af99` — feat(api): add software module with CRUD
+5. `d5c3248` — feat(api): extend equipment with category, license fields + components include
+6. `d983b16` — feat(api): add inventory endpoint with multi-filter support
+7. `7716802` — feat(web): add equipment category CRUD + sidebar Inventario link
+8. `d3b4e9d` — feat(web): add equipment detail modal + clickable cards
+9. `50acf98` — feat(web): overhaul equipment form with tabs (data/components/license)
+10. `219cd29` — feat(web): add software management under client detail
+11. `72ee8de` — feat(web): add inventory page with filters
+12. `3675b97` — chore(slice-4): mark tasks complete + add apply-progress report
 
 ### Build Verification
-
-- `pnpm --filter api build`: ✅ PASS
-- `pnpm --filter web build`: ✅ PASS
-
-### Actual Changed Lines
-
-**3,490 insertions, 16 deletions** across 32 files.
-
-Design forecast was ~900 lines. Actual is significantly higher because:
-- Forms with multi-step wizard UI are more complex than rough estimates
-- Polymorphic attachment handling requires extensive validation logic
-- Photo resize composable and signature pad integration add substantial code
-- Storage abstraction with path traversal protection is security-critical
+- ✅ `pnpm --filter api build` — PASSED
+- ✅ `pnpm --filter web build` — PASSED
 
 ### Deviations from Design
-
-1. **Templates module**: Created in Slice 3 (task was listed in Slice 3 tasks) even though the design mentioned it for Slice 4. This is correct — the templates module is needed for the maintenance start flow.
-
-2. **Client maintenances endpoint**: Added as `GET /api/clients/:id/maintenances` in the clients controller (design showed it under maintenances). Both `GET /api/maintenances/client/:clientId` and `GET /api/clients/:id/maintenances` work.
-
-3. **Signature storage**: Signatures are stored as PNG files in `storage/signatures/{year}/{month}/{id}.png` rather than base64 in the DB. The design mentioned both approaches; file storage is more efficient for PDF generation in Slice 4.
-
-4. **Close endpoint**: Returns `pdfPath: null` with a TODO comment for Slice 4. No PDF generation is attempted.
-
-### Issues Found
-
 None — implementation matches design.
 
-### Status
+### Issues Found
+None.
 
-11/11 tasks complete. Ready for verify.
+## Slice 5: PDF + Templates (PR 5) — PENDING
+13 tasks remaining.
+
+## Slice 6: History + Notifications (PR 6) — PENDING
+13 tasks remaining.
