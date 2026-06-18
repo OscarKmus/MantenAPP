@@ -26,6 +26,18 @@ const router = createRouter({
       component: () => import("@/views/ClientDetailPage.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/maintenances/new",
+      name: "maintenance-start",
+      component: () => import("@/views/MaintenanceStartPage.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/maintenances/:id",
+      name: "maintenance-flow",
+      component: () => import("@/views/MaintenanceFlowPage.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 

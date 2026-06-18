@@ -152,6 +152,21 @@ const nextMaintenanceDisplay = computed(() => {
 
       <!-- Tab: Resumen -->
       <div v-if="activeTab === 'resumen'" class="space-y-6">
+        <!-- Start maintenance button -->
+        <button
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3
+                 bg-primary-600 text-white text-sm font-semibold rounded-xl shadow-sm
+                 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500
+                 focus:ring-offset-2 transition-colors"
+          @click="router.push({ name: 'maintenance-start', query: { clientId } })"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Iniciar mantención
+        </button>
+
         <!-- Quick stats -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-white rounded-xl border border-slate-200 p-4">

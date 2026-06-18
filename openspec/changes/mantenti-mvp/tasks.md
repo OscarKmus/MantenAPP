@@ -138,19 +138,19 @@ Chain strategy: stacked-to-main
 
 ## Slice 3: Maintenance Workflow + Attachments (PR 3 — ~900 lines)
 
-- [ ] 3.1 Implement action-types module: CRUD routes, inline create, 409 on used-type delete
+- [x] 3.1 Implement action-types module: CRUD routes, inline create, 409 on used-type delete
   - **Files**: `apps\api\src\modules\action-types\action-types.controller.ts`, `apps\api\src\modules\action-types\action-types.service.ts`, `apps\api\src\modules\action-types\action-types.schema.ts`
   - **Estimate**: 100 lines
 
-- [ ] 3.2 Implement maintenances module: create (manual + template), get, update status/notes, update item, list
+- [x] 3.2 Implement maintenances module: create (manual + template), get, update status/notes, update item, list
   - **Files**: `apps\api\src\modules\maintenances\maintenances.controller.ts`, `apps\api\src\modules\maintenances\maintenances.service.ts`, `apps\api\src\modules\maintenances\maintenances.schema.ts`
   - **Estimate**: 180 lines
 
-- [ ] 3.3 Implement attachments module: upload (multipart, scope+parentId), stream, delete; 10MB + 20-photo limits
+- [x] 3.3 Implement attachments module: upload (multipart, scope+parentId), stream, delete; 10MB + 20-photo limits
   - **Files**: `apps\api\src\modules\attachments\attachments.controller.ts`, `apps\api\src\modules\attachments\attachments.service.ts`
   - **Estimate**: 120 lines
 
-- [ ] 3.4 Create storage abstraction + local filesystem provider
+- [x] 3.4 Create storage abstraction + local filesystem provider
   - **Files**: `apps\api\src\services\storage\storage.provider.ts`, `apps\api\src\services\storage\local.provider.ts`
   - **Estimate**: 80 lines
 
@@ -178,7 +178,7 @@ Chain strategy: stacked-to-main
   - **Files**: `apps\web\src\router\index.ts` (modify)
   - **Estimate**: 20 lines
 
-- [ ] 3.11 Create `storage/` directory structure (attachments/, pdfs/, signatures/) + .gitkeep
+- [x] 3.11 Create `storage/` directory structure (attachments/, pdfs/, signatures/) + .gitkeep
   - **Files**: `storage\attachments\.gitkeep`, `storage\pdfs\.gitkeep`, `storage\signatures\.gitkeep`
   - **Estimate**: 5 lines
 
