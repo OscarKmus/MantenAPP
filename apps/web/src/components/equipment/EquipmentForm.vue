@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
-import type { Equipment, EquipmentStatus } from "@mantenti/types";
+import { ref, watch, computed, onMounted } from "vue";
+import type { Equipment, EquipmentStatus, EquipmentCategory, EquipmentComponent, ComponentType } from "@mantenti/types";
+import { useInventoryStore } from "@/stores/inventory";
+import api from "@/lib/api";
 
 const STATUS_OPTIONS: { value: EquipmentStatus; label: string }[] = [
   { value: "ACTIVE", label: "Activo" },
   { value: "INACTIVE", label: "Inactivo" },
   { value: "UNDER_MAINTENANCE", label: "En mantención" },
   { value: "DECOMMISSIONED", label: "Dado de baja" },
+];
+
+const COMPONENT_TYPES: { value: ComponentType; label: string }[] = [
+  { value: "RAM", label: "RAM" },
+  { value: "CPU", label: "CPU" },
+  { value: "DISK", label: "Disco" },
+  { value: "GPU", label: "GPU" },
+  { value: "PSU", label: "Fuente" },
+  { value: "MOTHERBOARD", label: "Placa madre" },
+  { value: "OTHER", label: "Otro" },
 ];
 
 const props = defineProps<{
@@ -19,6 +31,22 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+const inventoryStore = useInventoryStore();
+const activeTab = ref<"datos" | "componentes" | "licencia">("datos");
+const showCategoryDialog = ref(false);
+const newCategoryName = ref("");
+const newCategoryIsComputer = ref(false);
+
+// Components state
+const components = ref<EquipmentComponent[]>([]);
+const editingComponent = ref<EquipmentComponent | null>(null);
+const showComponentForm = ref(false);
+const componentForm = ref({
+  type: "RAM" as ComponentType,
+  name: "",
+  specs: "",
+});
+
 const form = ref({
   name: "",
   ip: "",
@@ -26,13 +54,24 @@ const form = ref({
   serial: "",
   assignedTo: "",
   status: "ACTIVE" as EquipmentStatus,
+  categoryId: null as string | null,
+  hasLicense: false,
+  licenseType: "",
+  licenseExpiresAt: "",
+  licenseNotes: "",
 });
 
 const errors = ref<Record<string, string>>({});
 
+// Load categories on mount
+onMounted(async () => {
+  await inventoryStore.fetchCategories();
+});
+
+// Watch equipment prop
 watch(
   () => props.equipment,
-  (eq) => {
+  async (eq) => {
     if (eq) {
       form.value = {
         name: eq.name,
@@ -41,13 +80,41 @@ watch(
         serial: eq.serial ?? "",
         assignedTo: eq.assignedTo ?? "",
         status: eq.status,
+        categoryId: eq.categoryId ?? null,
+        hasLicense: eq.hasLicense ?? false,
+        licenseType: eq.licenseType ?? "",
+        licenseExpiresAt: eq.licenseExpiresAt
+          ? new Date(eq.licenseExpiresAt).toISOString().split("T")[0]
+          : "",
+        licenseNotes: eq.licenseNotes ?? "",
       };
+
+      // Load components if editing
+      if (eq.id) {
+        try {
+          const { data } = await api.get<{ components: EquipmentComponent[] }>(
+            `/equipment/${eq.id}/components`
+          );
+          components.value = data.components;
+        } catch {
+          components.value = [];
+        }
+      }
     }
   },
   { immediate: true }
 );
 
 const isEditing = computed(() => !!props.equipment);
+
+const selectedCategory = computed(() => {
+  if (!form.value.categoryId) return null;
+  return inventoryStore.categories.find((c) => c.id === form.value.categoryId) ?? null;
+});
+
+const showComponentsTab = computed(() => {
+  return selectedCategory.value?.isComputer ?? false;
+});
 
 function validate(): boolean {
   errors.value = {};
@@ -70,12 +137,11 @@ function validate(): boolean {
 function handleSubmit() {
   if (!validate()) return;
 
-  // Only include fields that have a value; the API schema is optional/nullable
-  // but rejects explicit `null` (the service normalizes "" → null, not the form).
   const data: Record<string, unknown> = {
     name: form.value.name.trim(),
     status: form.value.status,
   };
+
   const ip = form.value.ip.trim();
   if (ip) data.ip = ip;
   const mac = form.value.mac.trim();
@@ -85,109 +151,513 @@ function handleSubmit() {
   const assignedTo = form.value.assignedTo.trim();
   if (assignedTo) data.assignedTo = assignedTo;
 
+  // Category
+  data.categoryId = form.value.categoryId || null;
+
+  // License
+  data.hasLicense = form.value.hasLicense;
+  if (form.value.hasLicense) {
+    data.licenseType = form.value.licenseType || null;
+    data.licenseExpiresAt = form.value.licenseExpiresAt
+      ? new Date(form.value.licenseExpiresAt).toISOString()
+      : null;
+    data.licenseNotes = form.value.licenseNotes.trim() || null;
+  } else {
+    data.licenseType = null;
+    data.licenseExpiresAt = null;
+    data.licenseNotes = null;
+  }
+
+  // Include components for the parent to handle
+  data._components = components.value;
+
   emit("submit", data);
+}
+
+async function createCategory() {
+  if (!newCategoryName.value.trim()) return;
+
+  try {
+    const category = await inventoryStore.createCategory({
+      name: newCategoryName.value.trim(),
+      isComputer: newCategoryIsComputer.value,
+    });
+    form.value.categoryId = category.id;
+    showCategoryDialog.value = false;
+    newCategoryName.value = "";
+    newCategoryIsComputer.value = false;
+  } catch (err: any) {
+    alert(err.response?.data?.error || "Error creating category");
+  }
+}
+
+function openAddComponent() {
+  editingComponent.value = null;
+  componentForm.value = { type: "RAM", name: "", specs: "" };
+  showComponentForm.value = true;
+}
+
+function openEditComponent(comp: EquipmentComponent) {
+  editingComponent.value = comp;
+  componentForm.value = {
+    type: comp.type,
+    name: comp.name,
+    specs: comp.specs ?? "",
+  };
+  showComponentForm.value = true;
+}
+
+function saveComponent() {
+  if (!componentForm.value.name.trim()) return;
+
+  if (editingComponent.value) {
+    // Update existing
+    const idx = components.value.findIndex((c) => c.id === editingComponent.value!.id);
+    if (idx !== -1) {
+      components.value[idx] = {
+        ...components.value[idx],
+        type: componentForm.value.type,
+        name: componentForm.value.name.trim(),
+        specs: componentForm.value.specs.trim() || null,
+      };
+    }
+  } else {
+    // Add new (temporary ID for UI)
+    components.value.push({
+      id: `temp-${Date.now()}`,
+      equipmentId: props.equipment?.id ?? "",
+      type: componentForm.value.type,
+      name: componentForm.value.name.trim(),
+      specs: componentForm.value.specs.trim() || null,
+      sortOrder: components.value.length,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  showComponentForm.value = false;
+  editingComponent.value = null;
+}
+
+function removeComponent(id: string) {
+  components.value = components.value.filter((c) => c.id !== id);
 }
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
-    <!-- Name -->
-    <div>
-      <label for="eq-name" class="block text-sm font-medium text-slate-700 mb-1.5">
-        Nombre <span class="text-red-500">*</span>
-      </label>
-      <input
-        id="eq-name"
-        v-model="form.name"
-        type="text"
-        :class="[
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-          errors.name ? 'border-red-300' : 'border-slate-300',
-        ]"
-        placeholder="Nombre del equipo"
-      />
-      <p v-if="errors.name" class="mt-1.5 text-xs text-red-600">{{ errors.name }}</p>
+    <!-- Tabs -->
+    <div class="border-b border-slate-200 -mx-6 px-6 overflow-x-auto">
+      <nav class="flex gap-1 min-w-max" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === 'datos'"
+          :class="[
+            'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap',
+            activeTab === 'datos'
+              ? 'text-primary-700 border-b-2 border-primary-600 bg-primary-50/50'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
+          ]"
+          @click="activeTab = 'datos'"
+        >
+          Datos
+        </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === 'componentes'"
+          :disabled="!showComponentsTab"
+          :class="[
+            'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap',
+            activeTab === 'componentes'
+              ? 'text-primary-700 border-b-2 border-primary-600 bg-primary-50/50'
+              : !showComponentsTab
+                ? 'text-slate-400 cursor-not-allowed'
+                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
+          ]"
+          @click="showComponentsTab && (activeTab = 'componentes')"
+        >
+          Componentes
+          <span v-if="!showComponentsTab" class="text-xs ml-1">(solo computadoras)</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === 'licencia'"
+          :class="[
+            'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap',
+            activeTab === 'licencia'
+              ? 'text-primary-700 border-b-2 border-primary-600 bg-primary-50/50'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
+          ]"
+          @click="activeTab = 'licencia'"
+        >
+          Licencia
+        </button>
+      </nav>
     </div>
 
-    <!-- Status -->
-    <div>
-      <label for="eq-status" class="block text-sm font-medium text-slate-700 mb-1.5">
-        Estado
-      </label>
-      <select
-        id="eq-status"
-        v-model="form.status"
-        class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-      >
-        <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
-          {{ opt.label }}
-        </option>
-      </select>
+    <!-- Tab: Datos -->
+    <div v-if="activeTab === 'datos'" class="space-y-4">
+      <!-- Name -->
+      <div>
+        <label for="eq-name" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Nombre <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="eq-name"
+          v-model="form.name"
+          type="text"
+          :class="[
+            'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+            errors.name ? 'border-red-300' : 'border-slate-300',
+          ]"
+          placeholder="Nombre del equipo"
+        />
+        <p v-if="errors.name" class="mt-1.5 text-xs text-red-600">{{ errors.name }}</p>
+      </div>
+
+      <!-- Category -->
+      <div>
+        <label for="eq-category" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Categoría
+        </label>
+        <div class="flex gap-2">
+          <select
+            id="eq-category"
+            v-model="form.categoryId"
+            class="flex-1 block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option :value="null">Sin categoría</option>
+            <option
+              v-for="cat in inventoryStore.categories"
+              :key="cat.id"
+              :value="cat.id"
+            >
+              {{ cat.name }}{{ cat.isComputer ? " 💻" : "" }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
+                   hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            title="Crear nueva categoría"
+            @click="showCategoryDialog = true"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div>
+        <label for="eq-status" class="block text-sm font-medium text-slate-700 mb-1.5">
+          Estado
+        </label>
+        <select
+          id="eq-status"
+          v-model="form.status"
+          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Network fields -->
+      <fieldset class="border border-slate-200 rounded-lg p-4">
+        <legend class="text-sm font-medium text-slate-700 px-2">Red e identificación</legend>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="eq-ip" class="block text-sm text-slate-600 mb-1">Dirección IP</label>
+            <input
+              id="eq-ip"
+              v-model="form.ip"
+              type="text"
+              :class="[
+                'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                errors.ip ? 'border-red-300' : 'border-slate-300',
+              ]"
+              placeholder="192.168.1.10"
+            />
+            <p v-if="errors.ip" class="mt-1 text-xs text-red-600">{{ errors.ip }}</p>
+          </div>
+          <div>
+            <label for="eq-mac" class="block text-sm text-slate-600 mb-1">MAC Address</label>
+            <input
+              id="eq-mac"
+              v-model="form.mac"
+              type="text"
+              :class="[
+                'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                errors.mac ? 'border-red-300' : 'border-slate-300',
+              ]"
+              placeholder="aa:bb:cc:dd:ee:ff"
+            />
+            <p v-if="errors.mac" class="mt-1 text-xs text-red-600">{{ errors.mac }}</p>
+          </div>
+          <div>
+            <label for="eq-serial" class="block text-sm text-slate-600 mb-1">Número de serie</label>
+            <input
+              id="eq-serial"
+              v-model="form.serial"
+              type="text"
+              class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="SN-12345"
+            />
+          </div>
+          <div>
+            <label for="eq-assigned" class="block text-sm text-slate-600 mb-1">Asignado a</label>
+            <input
+              id="eq-assigned"
+              v-model="form.assignedTo"
+              type="text"
+              class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Nombre de usuario"
+            />
+          </div>
+        </div>
+      </fieldset>
     </div>
 
-    <!-- Network fields -->
-    <fieldset class="border border-slate-200 rounded-lg p-4">
-      <legend class="text-sm font-medium text-slate-700 px-2">Red e identificación</legend>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label for="eq-ip" class="block text-sm text-slate-600 mb-1">Dirección IP</label>
-          <input
-            id="eq-ip"
-            v-model="form.ip"
-            type="text"
-            :class="[
-              'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-              errors.ip ? 'border-red-300' : 'border-slate-300',
-            ]"
-            placeholder="192.168.1.10"
-          />
-          <p v-if="errors.ip" class="mt-1 text-xs text-red-600">{{ errors.ip }}</p>
+    <!-- Tab: Componentes -->
+    <div v-if="activeTab === 'componentes'" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-slate-600">
+          Componentes de hardware de este equipo.
+        </p>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-sm
+                 font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          @click="openAddComponent"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Agregar
+        </button>
+      </div>
+
+      <!-- Components list -->
+      <div v-if="components.length === 0" class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-6 text-center">
+        <p class="text-sm text-slate-500">Sin componentes registrados</p>
+      </div>
+
+      <div v-else class="space-y-2">
+        <div
+          v-for="comp in components"
+          :key="comp.id"
+          class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+              {{ comp.type }}
+            </span>
+            <div>
+              <p class="text-sm font-medium text-slate-800">{{ comp.name }}</p>
+              <p v-if="comp.specs" class="text-xs text-slate-500">{{ comp.specs }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="p-1.5 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50"
+              @click="openEditComponent(comp)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+              @click="removeComponent(comp.id)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div>
-          <label for="eq-mac" class="block text-sm text-slate-600 mb-1">MAC Address</label>
-          <input
-            id="eq-mac"
-            v-model="form.mac"
-            type="text"
-            :class="[
-              'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-              errors.mac ? 'border-red-300' : 'border-slate-300',
-            ]"
-            placeholder="aa:bb:cc:dd:ee:ff"
-          />
-          <p v-if="errors.mac" class="mt-1 text-xs text-red-600">{{ errors.mac }}</p>
+      </div>
+
+      <!-- Component form dialog -->
+      <Teleport to="body">
+        <div
+          v-if="showComponentForm"
+          class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40"
+          @click.self="showComponentForm = false"
+        >
+          <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">
+              {{ editingComponent ? "Editar componente" : "Agregar componente" }}
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+                <select
+                  v-model="componentForm.type"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option v-for="t in COMPONENT_TYPES" :key="t.value" :value="t.value">
+                    {{ t.label }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+                <input
+                  v-model="componentForm.name"
+                  type="text"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="ej: Corsair Vengeance 16GB"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">
+                  Especificaciones
+                  <span class="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  v-model="componentForm.specs"
+                  type="text"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="ej: DDR4 3200MHz"
+                />
+              </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium
+                       text-slate-700 hover:bg-slate-50"
+                @click="showComponentForm = false"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 rounded-lg bg-primary-600 text-sm font-semibold text-white
+                       hover:bg-primary-700"
+                @click="saveComponent"
+              >
+                {{ editingComponent ? "Guardar" : "Agregar" }}
+              </button>
+            </div>
+          </div>
         </div>
+      </Teleport>
+    </div>
+
+    <!-- Tab: Licencia -->
+    <div v-if="activeTab === 'licencia'" class="space-y-4">
+      <!-- Toggle -->
+      <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4">
         <div>
-          <label for="eq-serial" class="block text-sm text-slate-600 mb-1">Número de serie</label>
+          <p class="text-sm font-medium text-slate-700">¿Tiene licencia asignada?</p>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Activa si este equipo tiene software con licencia
+          </p>
+        </div>
+        <button
+          type="button"
+          :class="[
+            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+            form.hasLicense ? 'bg-primary-600' : 'bg-slate-300',
+          ]"
+          @click="form.hasLicense = !form.hasLicense"
+        >
+          <span
+            :class="[
+              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+              form.hasLicense ? 'translate-x-6' : 'translate-x-1',
+            ]"
+          />
+        </button>
+      </div>
+
+      <!-- License fields -->
+      <div v-if="form.hasLicense" class="space-y-4">
+        <div>
+          <label for="eq-license-type" class="block text-sm font-medium text-slate-700 mb-1.5">
+            Tipo de licencia
+          </label>
           <input
-            id="eq-serial"
-            v-model="form.serial"
+            id="eq-license-type"
+            v-model="form.licenseType"
             type="text"
             class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="SN-12345"
+            placeholder="ej: OFFICE, NORTON, AUTOCAD..."
           />
         </div>
+
         <div>
-          <label for="eq-assigned" class="block text-sm text-slate-600 mb-1">Asignado a</label>
+          <label for="eq-license-expires" class="block text-sm font-medium text-slate-700 mb-1.5">
+            Fecha de vencimiento
+          </label>
           <input
-            id="eq-assigned"
-            v-model="form.assignedTo"
-            type="text"
+            id="eq-license-expires"
+            v-model="form.licenseExpiresAt"
+            type="date"
             class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Nombre de usuario"
+          />
+        </div>
+
+        <div>
+          <label for="eq-license-notes" class="block text-sm font-medium text-slate-700 mb-1.5">
+            Notas
+          </label>
+          <textarea
+            id="eq-license-notes"
+            v-model="form.licenseNotes"
+            rows="3"
+            class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Información adicional sobre la licencia..."
           />
         </div>
       </div>
-    </fieldset>
+
+      <!-- No license message -->
+      <div v-else class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+        <svg
+          class="w-10 h-10 text-green-400 mx-auto mb-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <p class="text-green-700 font-medium">Sin licencias por el momento</p>
+        <p class="text-sm text-green-600 mt-1">
+          Activa el interruptor de arriba si necesitas registrar una licencia.
+        </p>
+      </div>
+    </div>
 
     <!-- Actions -->
-    <div class="flex gap-3 pt-2">
+    <div class="flex gap-3 pt-2 border-t border-slate-200">
       <button
         type="button"
         class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700
@@ -215,5 +685,60 @@ function handleSubmit() {
         {{ isEditing ? "Guardar cambios" : "Agregar equipo" }}
       </button>
     </div>
+
+    <!-- Create Category Dialog -->
+    <Teleport to="body">
+      <div
+        v-if="showCategoryDialog"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40"
+        @click.self="showCategoryDialog = false"
+      >
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Nueva categoría</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+              <input
+                v-model="newCategoryName"
+                type="text"
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="ej: Servidor, Tablet..."
+                @keyup.enter="createCategory"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <input
+                id="new-cat-computer"
+                v-model="newCategoryIsComputer"
+                type="checkbox"
+                class="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              />
+              <label for="new-cat-computer" class="text-sm text-slate-700">
+                Es computadora (habilita pestaña de componentes)
+              </label>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-5">
+            <button
+              type="button"
+              class="flex-1 px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium
+                     text-slate-700 hover:bg-slate-50"
+              @click="showCategoryDialog = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-2 rounded-lg bg-primary-600 text-sm font-semibold text-white
+                     hover:bg-primary-700"
+              @click="createCategory"
+            >
+              Crear
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </form>
 </template>
