@@ -35,7 +35,8 @@ Thumbs.db
 coverage/
 
 # Project-specific
-storage/
+storage/**/*
+!storage/**/.gitkeep
 uploads/
 
 # SDD / Gentle AI scratch

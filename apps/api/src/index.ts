@@ -7,6 +7,10 @@ import prisma from "./lib/prisma";
 import { authRouter } from "./modules/auth/auth.controller";
 import { clientsRouter } from "./modules/clients/clients.controller";
 import { equipmentRouter } from "./modules/equipment/equipment.controller";
+import { actionTypesRouter } from "./modules/action-types/action-types.controller";
+import { maintenancesRouter } from "./modules/maintenances/maintenances.controller";
+import { attachmentsRouter } from "./modules/attachments/attachments.controller";
+import { templatesRouter } from "./modules/templates/templates.controller";
 
 const env = getEnv();
 const app = express();
@@ -25,6 +29,10 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api", equipmentRouter);
+app.use("/api/action-types", actionTypesRouter);
+app.use("/api/maintenances", maintenancesRouter);
+app.use("/api", attachmentsRouter);
+app.use("/api", templatesRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
