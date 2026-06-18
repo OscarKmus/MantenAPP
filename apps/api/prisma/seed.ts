@@ -34,7 +34,26 @@ async function main() {
     });
   }
 
-  console.log("Seed completed: default action types created");
+  // ─── Default equipment categories ────────────────────────
+  const defaultCategories = [
+    { name: "PC Desktop", icon: "monitor", isDefault: true, isComputer: true, sortOrder: 0 },
+    { name: "Notebook", icon: "laptop", isDefault: true, isComputer: true, sortOrder: 1 },
+    { name: "Impresora", icon: "printer", isDefault: true, isComputer: false, sortOrder: 2 },
+    { name: "Monitor", icon: "monitor", isDefault: true, isComputer: false, sortOrder: 3 },
+    { name: "Router", icon: "router", isDefault: true, isComputer: false, sortOrder: 4 },
+    { name: "Switch", icon: "network", isDefault: true, isComputer: false, sortOrder: 5 },
+    { name: "Servidor", icon: "server", isDefault: true, isComputer: true, sortOrder: 6 },
+  ];
+
+  for (const category of defaultCategories) {
+    await prisma.equipmentCategory.upsert({
+      where: { name: category.name },
+      update: {},
+      create: category,
+    });
+  }
+
+  console.log("Seed completed: default action types and equipment categories created");
 }
 
 main()

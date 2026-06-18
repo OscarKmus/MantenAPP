@@ -10,6 +10,23 @@ export type MaintenanceStatus = "DRAFT" | "IN_PROGRESS" | "CLOSED";
 
 export type AttachmentScope = "MAINTENANCE" | "MAINTENANCE_ITEM";
 
+export type ComponentType =
+  | "RAM"
+  | "CPU"
+  | "DISK"
+  | "GPU"
+  | "PSU"
+  | "MOTHERBOARD"
+  | "OTHER";
+
+export type LicenseType =
+  | "OFFICE"
+  | "NORTON"
+  | "PDF"
+  | "AUTOCAD"
+  | "ANTIVIRUS"
+  | "OTHER";
+
 // ─── Domain Models ──────────────────────────────────────
 
 export interface User {
@@ -38,14 +55,21 @@ export interface Client {
 export interface Equipment {
   id: string;
   clientId: string;
+  categoryId: string | null;
   name: string;
   ip: string | null;
   mac: string | null;
   serial: string | null;
   assignedTo: string | null;
   status: EquipmentStatus;
+  hasLicense: boolean;
+  licenseType: string | null;
+  licenseExpiresAt: string | null;
+  licenseNotes: string | null;
   createdAt: string;
   updatedAt: string;
+  category?: EquipmentCategory | null;
+  components?: EquipmentComponent[];
 }
 
 export interface ActionType {
@@ -125,5 +149,53 @@ export interface PushSubscription {
   endpoint: string;
   p256dh: string;
   auth: string;
+  createdAt: string;
+}
+
+// ─── Inventory ──────────────────────────────────────────
+
+export interface EquipmentCategory {
+  id: string;
+  name: string;
+  icon: string | null;
+  isDefault: boolean;
+  isComputer: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EquipmentComponent {
+  id: string;
+  equipmentId: string;
+  type: ComponentType;
+  name: string;
+  specs: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface Software {
+  id: string;
+  name: string;
+  licenseType: LicenseType;
+  clientId: string;
+  equipmentId: string | null;
+  expiresAt: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  type: "equipment" | "software";
+  name: string;
+  clientId: string;
+  clientName?: string;
+  status?: EquipmentStatus;
+  categoryName?: string;
+  licenseType?: LicenseType;
+  expiresAt?: string;
   createdAt: string;
 }
