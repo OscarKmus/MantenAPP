@@ -17,7 +17,13 @@ const router = createRouter({
     {
       path: "/clients",
       name: "clients",
-      component: () => import("@/views/ClientsPlaceholder.vue"),
+      component: () => import("@/views/ClientListPage.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/clients/:id",
+      name: "client-detail",
+      component: () => import("@/views/ClientDetailPage.vue"),
       meta: { requiresAuth: true },
     },
   ],
