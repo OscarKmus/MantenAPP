@@ -280,57 +280,71 @@ Chain strategy: stacked-to-main
 
 ## Slice 5: PDF + Templates (PR 5 — ~950 lines)
 
-- [ ] 5.1 Implement close endpoint: validate signature, save base64 PNG, set status CLOSED, trigger async PDF gen
-  - **Files**: `apps\api\src\modules\maintenances\maintenances.controller.ts` (modify), `apps\api\src\modules\maintenances\maintenances.service.ts` (modify)
-  - **Estimate**: 80 lines
-
-- [ ] 5.2 Create Puppeteer browser singleton (lazy-init, RSS limit 512MB, auto-respawn)
-  - **Files**: `apps\api\src\lib\puppeteer.ts`
-  - **Estimate**: 50 lines
-
-- [ ] 5.3 Create maintenance report Handlebars template (A4, header, items table, photos grid, signature block)
-  - **Files**: `apps\api\src\services\pdf\templates\maintenance-report.hbs`
-  - **Estimate**: 120 lines
-
-- [ ] 5.4 Implement Puppeteer PDF renderer: render HTML → page.pdf() → write to storage
-  - **Files**: `apps\api\src\services\pdf\puppeteer.renderer.ts`
-  - **Estimate**: 80 lines
-
-- [ ] 5.5 Implement PDFKit fallback renderer: simplified text + images layout
-  - **Files**: `apps\api\src\services\pdf\pdfkit.renderer.ts`
-  - **Estimate**: 100 lines
-
-- [ ] 5.6 Implement PDF service: orchestrate Puppeteer→PDFKit fallback, store path in DB, recalculate next-maintenance
-  - **Files**: `apps\api\src\services\pdf\pdf.service.ts`
-  - **Estimate**: 80 lines
-
-- [ ] 5.7 Implement PDF download endpoint: `GET /api/maintenances/:id/pdf` → stream file
+- [x] 5.1 Implement close endpoint: validate signature, save base64 PNG, set status CLOSED, trigger sync PDF gen
   - **Files**: `apps\api\src\modules\maintenances\maintenances.controller.ts` (modify)
-  - **Estimate**: 30 lines
+  - **Notes**: Close endpoint now calls `regenerateMaintenancePdf` synchronously. Returns `pdfPath` in response. PDF failure doesn't block close.
 
-- [ ] 5.8 Build `SignaturePad.vue`: `signature_pad` canvas (300×100 min), clear, export base64
+- [x] 5.2 ~~Create Puppeteer browser singleton~~ → **Replaced with @react-pdf/renderer**
+  - **Decision**: Used `@react-pdf/renderer` instead of Puppeteer. No Chromium dependency, ~0MB RAM overhead, declarative JSX templates. Documented in engram.
+  - **Files**: `apps\api\package.json` (modify — added `@react-pdf/renderer`, `react`, `@types/react`)
+
+- [x] 5.3 Create maintenance report template (A4, header, items table, photos grid, signature block)
+  - **Files**: `apps\api\src\services\pdf\report-template.tsx`
+  - **Notes**: JSX component using @react-pdf/renderer. Professional branded layout with company name, report metadata, client section, equipment table, photo grid, dual signatures, page numbers.
+
+- [x] 5.4 ~~Implement Puppeteer PDF renderer~~ → **Replaced with @react-pdf/renderer renderToBuffer**
+  - **Notes**: `renderToBuffer()` from @react-pdf/renderer replaces Puppeteer's page.pdf(). No HTML intermediate step needed.
+
+- [x] 5.5 ~~Implement PDFKit fallback renderer~~ → **Not needed**
+  - **Notes**: @react-pdf/renderer has no Chromium dependency, so no memory/OOM issues. PDFKit fallback removed from scope.
+
+- [x] 5.6 Implement PDF service: orchestrate @react-pdf/renderer, store path in DB
+  - **Files**: `apps\api\src\services\pdf\pdf.service.ts`
+  - **Notes**: Functions: `generateMaintenancePdf`, `getMaintenancePdfPath`, `regenerateMaintenancePdf`. Fetches all relations, reads signature/photos from disk, renders template, writes PDF to `storage/pdfs/{YYYY}/{MM}/{id}.pdf`, updates `pdfPath` + `pdfEngine` in DB.
+
+- [x] 5.7 Implement PDF download endpoint: `GET /api/maintenances/:id/pdf` → stream file
+  - **Files**: `apps\api\src\modules\maintenances\maintenances.controller.ts` (modify)
+  - **Notes**: Also added `POST /api/maintenances/:id/pdf/regenerate` for force regeneration.
+
+- [x] 5.8 Build `SignaturePad.vue`: `signature_pad` canvas (300×100 min), clear, export base64
   - **Files**: `apps\web\src\components\maintenance\SignaturePad.vue`
-  - **Estimate**: 80 lines
+  - **Notes**: Already implemented in Slice 3. No changes needed.
 
-- [ ] 5.9 Build `PdfStatus.vue`: generating/ready indicator on completion step
+- [x] 5.9 Build `PdfStatus.vue`: generating/ready indicator with download/generate buttons
   - **Files**: `apps\web\src\components\maintenance\PdfStatus.vue`
-  - **Estimate**: 30 lines
+  - **Notes**: Three states: PDF ready (download button), not generated (generate button), generating (spinner). Includes regenerate option.
 
-- [ ] 5.10 Implement templates module: CRUD routes under `/api/clients/:clientId/templates`, name uniqueness per client
-  - **Files**: `apps\api\src\modules\templates\templates.controller.ts`, `apps\api\src\modules\templates\templates.service.ts`, `apps\api\src\modules\templates\templates.schema.ts`
-  - **Estimate**: 120 lines
+- [x] 5.10 Implement templates module: CRUD routes under `/api/clients/:clientId/templates`, name uniqueness per client
+  - **Files**: `apps\api\src\modules\templates\templates.controller.ts`, `templates.service.ts`, `templates.schema.ts`
+  - **Notes**: Already implemented in Slice 3. No changes needed.
 
-- [ ] 5.11 Build `TemplateSelector.vue`: list templates, start maintenance from template
+- [x] 5.11 Build `TemplateSelector.vue`: list templates, start maintenance from template
   - **Files**: `apps\web\src\components\templates\TemplateSelector.vue`
-  - **Estimate**: 80 lines
+  - **Notes**: Already implemented in Slice 3. No changes needed.
 
-- [ ] 5.12 Add template routes to Vue router + client detail templates tab
-  - **Files**: `apps\web\src\router\index.ts` (modify), `apps\web\src\views\ClientDetailPage.vue` (modify)
-  - **Estimate**: 20 lines
+- [x] 5.12 Add template routes to Vue router + client detail templates tab
+  - **Files**: `apps\web\src\router\index.ts`, `apps\web\src\views\ClientDetailPage.vue`
+  - **Notes**: Already implemented in Slice 3. No changes needed.
 
-- [ ] 5.13 Add Puppeteer + PDFKit + Handlebars dependencies to `apps/api/package.json`
-  - **Files**: `apps\api\package.json` (modify)
-  - **Estimate**: 10 lines
+- [x] 5.13 Add PDF library + React dependencies to `apps/api/package.json`
+  - **Files**: `apps\api\package.json` (modify), `apps\api\tsconfig.json` (modify — added `"jsx": "react-jsx"`)
+  - **Notes**: Added `@react-pdf/renderer`, `react`, `@types/react`. Added JSX support to tsconfig.
+
+- [x] 5.14 Add PDF store for frontend download/generate flow
+  - **Files**: `apps\web\src\stores\pdf.ts`
+  - **Notes**: Pinia store with `downloadPdf`, `generatePdf`, `generateAndDownload`. Handles blob→objectURL→click→revoke flow.
+
+- [x] 5.15 Update MaintenanceFlowPage completion step with PDF download
+  - **Files**: `apps\web\src\views\MaintenanceFlowPage.vue` (modify)
+  - **Notes**: Step 3 (Done) now shows PdfStatus component with download/generate button. Captures pdfPath from close response.
+
+- [x] 5.16 Add PDF download to ClientDetailPage Resumen tab
+  - **Files**: `apps\web\src\views\ClientDetailPage.vue` (modify)
+  - **Notes**: Shows latest closed maintenance with PdfStatus component. Fetches latest maintenance on mount.
+
+- [x] 5.17 Add COMPANY_NAME and COMPANY_LOGO_URL env vars
+  - **Files**: `apps\api\src\config\env.ts` (modify), `.env.example` (modify)
+  - **Notes**: Defaults: `COMPANY_NAME=Mantenti`, `COMPANY_LOGO_URL=""` (empty = no logo).
 
 ---
 
