@@ -149,7 +149,8 @@ attachmentsRouter.get(
       res.on("close", () => {
         // Client disconnected — destroy the stream so we don't keep reading
         if (!res.writableEnded) {
-          stream.destroy();
+          // The LocalStorage.getReadStream returns a Node Readable; cast for destroy().
+          (stream as unknown as { destroy?: () => void }).destroy?.();
         }
       });
 
