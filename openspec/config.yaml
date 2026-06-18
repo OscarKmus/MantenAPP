@@ -1,0 +1,34 @@
+schema: spec-driven
+
+context: |
+  Project: mantenti-mvp — field maintenance management web app for "técnico" users.
+  Stack: not yet chosen (architecture mandates responsive online web app, mobile + desktop).
+  Artifact store: OpenSpec (B1 — files in repo, traceable).
+  Git: not initialized yet (handled in sdd-apply).
+  Testing: no runner/config detected — strict_tdd disabled until stack is chosen.
+  Locked architecture (from engram): single role "técnico" + JWT auth, shared data ownership (no owner_user_id), dynamic action types, server-side PDF, hybrid next-maintenance model, in-scope notifications, per-item + per-maintenance attachment scopes.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - First proposal MUST choose stack (framework, DB, deployment target) and justify tradeoffs
+    - Honor locked architecture decisions without re-questioning them
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
