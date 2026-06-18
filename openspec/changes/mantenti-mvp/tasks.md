@@ -94,43 +94,43 @@ Chain strategy: stacked-to-main
 
 ## Slice 2: Clients + Equipment CRUD (PR 2 — ~800 lines)
 
-- [ ] 2.1 Implement clients module: CRUD routes, service (create, list, get, update, delete with 409 on history), next-maintenance calc
+- [x] 2.1 Implement clients module: CRUD routes, service (create, list, get, update, delete with 409 on history), next-maintenance calc
   - **Files**: `apps\api\src\modules\clients\clients.controller.ts`, `apps\api\src\modules\clients\clients.service.ts`, `apps\api\src\modules\clients\clients.schema.ts`
   - **Estimate**: 180 lines
 
-- [ ] 2.2 Implement equipment module: CRUD routes under `/api/clients/:clientId/equipment`, status filter, 409 on maintenance history
+- [x] 2.2 Implement equipment module: CRUD routes under `/api/clients/:clientId/equipment`, status filter, 409 on maintenance history
   - **Files**: `apps\api\src\modules\equipment\equipment.controller.ts`, `apps\api\src\modules\equipment\equipment.service.ts`, `apps\api\src\modules\equipment\equipment.schema.ts`
   - **Estimate**: 140 lines
 
-- [ ] 2.3 Create Pinia client store + equipment store
+- [x] 2.3 Create Pinia client store + equipment store
   - **Files**: `apps\web\src\stores\clients.ts`, `apps\web\src\stores\equipment.ts`
   - **Estimate**: 80 lines
 
-- [ ] 2.4 Build `ClientListPage.vue`: responsive card grid (375px stack), search, next-maintenance badge
+- [x] 2.4 Build `ClientListPage.vue`: responsive card grid (375px stack), search, next-maintenance badge
   - **Files**: `apps\web\src\views\ClientListPage.vue`
   - **Estimate**: 120 lines
 
-- [ ] 2.5 Build `ClientCard.vue`: name, contact, location, next-maintenance date, tappable ≥44px
+- [x] 2.5 Build `ClientCard.vue`: name, contact, location, next-maintenance date, tappable ≥44px
   - **Files**: `apps\web\src\components\clients\ClientCard.vue`
   - **Estimate**: 60 lines
 
-- [ ] 2.6 Build `ClientForm.vue`: create/edit form with name, location, contact fields, frequency days
+- [x] 2.6 Build `ClientForm.vue`: create/edit form with name, location, contact fields, frequency days
   - **Files**: `apps\web\src\components\clients\ClientForm.vue`
   - **Estimate**: 100 lines
 
-- [ ] 2.7 Build `ClientDetailPage.vue`: tabbed layout (equipment, templates, history)
+- [x] 2.7 Build `ClientDetailPage.vue`: tabbed layout (equipment, templates, history)
   - **Files**: `apps\web\src\views\ClientDetailPage.vue`
   - **Estimate**: 80 lines
 
-- [ ] 2.8 Build `EquipmentList.vue`: filterable list by status, add/edit/delete actions
+- [x] 2.8 Build `EquipmentList.vue`: filterable list by status, add/edit/delete actions
   - **Files**: `apps\web\src\components\equipment\EquipmentList.vue`
   - **Estimate**: 80 lines
 
-- [ ] 2.9 Build `EquipmentForm.vue`: fields for name, IP, MAC, serial, assignedTo, status dropdown
+- [x] 2.9 Build `EquipmentForm.vue`: fields for name, IP, MAC, serial, assignedTo, status dropdown
   - **Files**: `apps\web\src\components\equipment\EquipmentForm.vue`
   - **Estimate**: 80 lines
 
-- [ ] 2.10 Add client + equipment routes to Vue router
+- [x] 2.10 Add client + equipment routes to Vue router
   - **Files**: `apps\web\src\router\index.ts` (modify)
   - **Estimate**: 20 lines
 
