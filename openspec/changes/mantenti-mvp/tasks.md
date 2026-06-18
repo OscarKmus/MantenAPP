@@ -30,63 +30,63 @@ Chain strategy: stacked-to-main
 
 ## Slice 1: Foundation (PR 1 — ~870 lines)
 
-- [ ] 1.1 Init monorepo: root `package.json`, `pnpm-workspace.yaml`, `.gitignore`, `.env.example`
+- [x] 1.1 Init monorepo: root `package.json`, `pnpm-workspace.yaml`, `.gitignore`, `.env.example`
   - **Files**: `C:\Users\User\Desktop\Peguita\Codigos wao\APP manten\package.json`, `pnpm-workspace.yaml`, `.gitignore`, `.env.example`
   - **Estimate**: 40 lines
 
-- [ ] 1.2 Create Prisma schema with all 9 models (User, Client, Equipment, ActionType, Maintenance, MaintenanceItem, Attachment, Template, TemplateItem, Notification, PushSubscription) + enums
+- [x] 1.2 Create Prisma schema with all 9 models (User, Client, Equipment, ActionType, Maintenance, MaintenanceItem, Attachment, Template, TemplateItem, Notification, PushSubscription) + enums
   - **Files**: `apps\api\prisma\schema.prisma`
   - **Estimate**: 150 lines
 
-- [ ] 1.3 Write seed script: 5 default action types (Mantención preventiva, Corrección, Reemplazo, Instalación, Otro)
+- [x] 1.3 Write seed script: 5 default action types (Mantención preventiva, Corrección, Reemplazo, Instalación, Otro)
   - **Files**: `apps\api\prisma\seed.ts`
   - **Estimate**: 30 lines
 
-- [ ] 1.4 Create shared types package: `@mantenti/types` with domain models + API DTOs
+- [x] 1.4 Create shared types package: `@mantenti/types` with domain models + API DTOs
   - **Files**: `packages\types\package.json`, `packages\types\tsconfig.json`, `packages\types\src\index.ts`, `packages\types\src\models.ts`, `packages\types\src\api.ts`
   - **Estimate**: 80 lines
 
-- [ ] 1.5 Bootstrap Express app: `index.ts`, zod-validated env config, cors, cookie-parser, error-handler middleware
+- [x] 1.5 Bootstrap Express app: `index.ts`, zod-validated env config, cors, cookie-parser, error-handler middleware
   - **Files**: `apps\api\package.json`, `apps\api\tsconfig.json`, `apps\api\src\index.ts`, `apps\api\src\config\env.ts`, `apps\api\src\middleware\error-handler.ts`
   - **Estimate**: 120 lines
 
-- [ ] 1.6 Create Prisma singleton client + validate Zod env schema
+- [x] 1.6 Create Prisma singleton client + validate Zod env schema
   - **Files**: `apps\api\src\lib\prisma.ts`
   - **Estimate**: 20 lines
 
-- [ ] 1.7 Implement auth middleware: JWT verification from httpOnly cookie, attach `req.user`
+- [x] 1.7 Implement auth middleware: JWT verification from httpOnly cookie, attach `req.user`
   - **Files**: `apps\api\src\middleware\auth.ts`
   - **Estimate**: 50 lines
 
-- [ ] 1.8 Implement auth module: login (bcrypt + JWT access/refresh), logout, me, refresh endpoints + Zod schemas
+- [x] 1.8 Implement auth module: login (bcrypt + JWT access/refresh), logout, me, refresh endpoints + Zod schemas
   - **Files**: `apps\api\src\modules\auth\auth.controller.ts`, `apps\api\src\modules\auth\auth.service.ts`, `apps\api\src\modules\auth\auth.schema.ts`
   - **Estimate**: 150 lines
 
-- [ ] 1.9 Create validate middleware (Zod request validation wrapper)
+- [x] 1.9 Create validate middleware (Zod request validation wrapper)
   - **Files**: `apps\api\src\middleware\validate.ts`
   - **Estimate**: 25 lines
 
-- [ ] 1.10 Add healthcheck route `GET /api/health`
+- [x] 1.10 Add healthcheck route `GET /api/health`
   - **Files**: `apps\api\src\index.ts` (modify — add route)
   - **Estimate**: 10 lines
 
-- [ ] 1.11 Scaffold Vue 3 + Vite + Tailwind frontend: `package.json`, `vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `index.html`, `main.ts`, `App.vue`
+- [x] 1.11 Scaffold Vue 3 + Vite + Tailwind frontend: `package.json`, `vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `index.html`, `main.ts`, `App.vue`
   - **Files**: `apps\web\package.json`, `apps\web\vite.config.ts`, `apps\web\tailwind.config.ts`, `apps\web\tsconfig.json`, `apps\web\index.html`, `apps\web\src\main.ts`, `apps\web\src\App.vue`
   - **Estimate**: 100 lines
 
-- [ ] 1.12 Create axios API client with JWT refresh interceptor + Pinia auth store
+- [x] 1.12 Create axios API client with JWT refresh interceptor + Pinia auth store
   - **Files**: `apps\web\src\lib\api.ts`, `apps\web\src\stores\auth.ts`
   - **Estimate**: 80 lines
 
-- [ ] 1.13 Create Vue router with auth guard: `/login`, `/` → redirect `/clients`
+- [x] 1.13 Create Vue router with auth guard: `/login`, `/` → redirect `/clients`
   - **Files**: `apps\web\src\router\index.ts`
   - **Estimate**: 35 lines
 
-- [ ] 1.14 Build `LoginPage.vue`: username/password form, calls login, redirects on success
+- [x] 1.14 Build `LoginPage.vue`: username/password form, calls login, redirects on success
   - **Files**: `apps\web\src\views\LoginPage.vue`
   - **Estimate**: 80 lines
 
-- [ ] 1.15 Build layout shell: `AppHeader.vue`, `AppNav.vue` with responsive sidebar/drawer
+- [x] 1.15 Build layout shell: `AppHeader.vue`, `AppNav.vue` with responsive sidebar/drawer
   - **Files**: `apps\web\src\components\layout\AppHeader.vue`, `apps\web\src\components\layout\AppNav.vue`
   - **Estimate**: 100 lines
 
