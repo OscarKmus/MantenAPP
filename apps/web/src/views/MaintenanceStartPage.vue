@@ -13,15 +13,12 @@ const equipmentStore = useEquipmentStore();
 const draftStore = useMaintenanceDraftStore();
 
 const clientId = computed(() => route.query.clientId as string);
-const mode = ref<"manual" | "template">("manual");
 const selectedEquipmentIds = ref<Set<string>>(new Set());
-const selectedTemplateId = ref<string | null>(null);
 const starting = ref(false);
 const error = ref<string | null>(null);
 
 const client = computed(() => clientStore.currentClient);
 const equipment = computed(() => equipmentStore.equipment);
-const templates = computed(() => client.value?.templates ?? []);
 
 const hasSelection = computed(() => selectedEquipmentIds.value.size > 0);
 
@@ -52,16 +49,6 @@ function deselectAll() {
   selectedEquipmentIds.value = new Set();
 }
 
-function selectTemplate(templateId: string) {
-  selectedTemplateId.value = templateId;
-  const template = templates.value.find((t) => t.id === templateId);
-  if (template) {
-    // Pre-fill equipment from template
-    const ids = (template as any).items?.map((i: any) => i.equipmentId) ?? [];
-    selectedEquipmentIds.value = new Set(ids);
-  }
-}
-
 async function handleStart() {
   if (!clientId.value || selectedEquipmentIds.value.size === 0) return;
 
@@ -71,8 +58,7 @@ async function handleStart() {
   try {
     const maintenance = await draftStore.startMaintenance(
       clientId.value,
-      Array.from(selectedEquipmentIds.value),
-      selectedTemplateId.value ?? undefined
+      Array.from(selectedEquipmentIds.value)
     );
     router.push({ name: "maintenance-flow", params: { id: maintenance.id } });
   } catch (err: any) {
@@ -107,69 +93,6 @@ function handleBack() {
       <p class="text-sm text-slate-500 mt-1">
         Selecciona los equipos para esta mantención de <strong>{{ client?.name }}</strong>
       </p>
-    </div>
-
-    <!-- Mode selector -->
-    <div class="flex gap-2 mb-6">
-      <button
-        :class="[
-          'flex-1 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all',
-          mode === 'manual'
-            ? 'border-primary-500 bg-primary-50 text-primary-700'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-        ]"
-        @click="mode = 'manual'; selectedTemplateId = null"
-      >
-        <div class="flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          Manual
-        </div>
-      </button>
-      <button
-        :class="[
-          'flex-1 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all',
-          mode === 'template'
-            ? 'border-primary-500 bg-primary-50 text-primary-700'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-        ]"
-        @click="mode = 'template'"
-      >
-        <div class="flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-          </svg>
-          Plantilla
-        </div>
-      </button>
-    </div>
-
-    <!-- Template selector -->
-    <div v-if="mode === 'template'" class="mb-6">
-      <div v-if="templates.length === 0" class="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-8 text-center">
-        <p class="text-slate-600 font-medium">Sin plantillas guardadas</p>
-        <p class="text-sm text-slate-500 mt-1">Crea plantillas desde la página del cliente</p>
-      </div>
-      <div v-else class="space-y-2">
-        <button
-          v-for="template in templates"
-          :key="template.id"
-          :class="[
-            'w-full text-left px-4 py-3 rounded-xl border-2 transition-all',
-            selectedTemplateId === template.id
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-slate-200 bg-white hover:border-slate-300',
-          ]"
-          @click="selectTemplate(template.id)"
-        >
-          <div class="font-medium text-slate-800">{{ template.name }}</div>
-          <div v-if="template.description" class="text-sm text-slate-500 mt-0.5">{{ template.description }}</div>
-          <div class="text-xs text-slate-400 mt-1">
-            {{ (template as any).items?.length ?? 0 }} equipos
-          </div>
-        </button>
-      </div>
     </div>
 
     <!-- Equipment selector -->
