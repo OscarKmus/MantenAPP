@@ -37,6 +37,11 @@ export const createEquipmentSchema = z.object({
   serial: optionalString(100),
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  hasLicense: z.boolean().optional(),
+  licenseType: optionalString(50),
+  licenseExpiresAt: z.string().datetime().nullable().optional(),
+  licenseNotes: optionalString(500),
 });
 
 export const updateEquipmentSchema = z.object({
@@ -46,6 +51,11 @@ export const updateEquipmentSchema = z.object({
   serial: optionalString(100),
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  hasLicense: z.boolean().optional(),
+  licenseType: optionalString(50),
+  licenseExpiresAt: z.string().datetime().nullable().optional(),
+  licenseNotes: optionalString(500),
 });
 
 export const equipmentQuerySchema = z.object({

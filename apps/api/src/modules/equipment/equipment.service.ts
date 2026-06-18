@@ -19,11 +19,22 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus) 
   return prisma.equipment.findMany({
     where,
     orderBy: { name: "asc" },
+    include: {
+      category: { select: { id: true, name: true, icon: true, isComputer: true } },
+      components: { orderBy: { sortOrder: "asc" } },
+    },
   });
 }
 
 export async function getEquipment(id: string) {
-  const equipment = await prisma.equipment.findUnique({ where: { id } });
+  const equipment = await prisma.equipment.findUnique({
+    where: { id },
+    include: {
+      category: { select: { id: true, name: true, icon: true, isComputer: true } },
+      components: { orderBy: { sortOrder: "asc" } },
+      software: { orderBy: { expiresAt: "asc" } },
+    },
+  });
   if (!equipment) {
     throw createError(404, "Equipment not found");
   }
@@ -37,6 +48,14 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     throw createError(404, "Client not found");
   }
 
+  // Validate category if provided
+  if (input.categoryId) {
+    const category = await prisma.equipmentCategory.findUnique({ where: { id: input.categoryId } });
+    if (!category) {
+      throw createError(404, "Category not found");
+    }
+  }
+
   // Normalize empty strings to null
   const data = {
     clientId,
@@ -46,15 +65,34 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     serial: input.serial || null,
     assignedTo: input.assignedTo || null,
     status: input.status ?? "ACTIVE",
+    categoryId: input.categoryId ?? null,
+    hasLicense: input.hasLicense ?? false,
+    licenseType: input.licenseType || null,
+    licenseExpiresAt: input.licenseExpiresAt ? new Date(input.licenseExpiresAt) : null,
+    licenseNotes: input.licenseNotes || null,
   };
 
-  return prisma.equipment.create({ data });
+  return prisma.equipment.create({
+    data,
+    include: {
+      category: { select: { id: true, name: true, icon: true, isComputer: true } },
+      components: true,
+    },
+  });
 }
 
 export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
   const existing = await prisma.equipment.findUnique({ where: { id } });
   if (!existing) {
     throw createError(404, "Equipment not found");
+  }
+
+  // Validate category if provided
+  if (input.categoryId) {
+    const category = await prisma.equipmentCategory.findUnique({ where: { id: input.categoryId } });
+    if (!category) {
+      throw createError(404, "Category not found");
+    }
   }
 
   const data: Record<string, unknown> = {};
@@ -64,10 +102,21 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
   if (input.serial !== undefined) data.serial = input.serial;
   if (input.assignedTo !== undefined) data.assignedTo = input.assignedTo;
   if (input.status !== undefined) data.status = input.status;
+  if (input.categoryId !== undefined) data.categoryId = input.categoryId;
+  if (input.hasLicense !== undefined) data.hasLicense = input.hasLicense;
+  if (input.licenseType !== undefined) data.licenseType = input.licenseType;
+  if (input.licenseExpiresAt !== undefined) {
+    data.licenseExpiresAt = input.licenseExpiresAt ? new Date(input.licenseExpiresAt) : null;
+  }
+  if (input.licenseNotes !== undefined) data.licenseNotes = input.licenseNotes;
 
   return prisma.equipment.update({
     where: { id },
     data,
+    include: {
+      category: { select: { id: true, name: true, icon: true, isComputer: true } },
+      components: true,
+    },
   });
 }
 

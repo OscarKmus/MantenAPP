@@ -1,4 +1,8 @@
-import type { User, Client, Equipment, Maintenance, MaintenanceItem, Attachment, ActionType, Template, TemplateItem, Notification } from "./models";
+import type {
+  User, Client, Equipment, Maintenance, MaintenanceItem, Attachment,
+  ActionType, Template, TemplateItem, Notification,
+  EquipmentCategory, EquipmentComponent, Software, InventoryItem,
+} from "./models";
 
 // ─── Auth ───────────────────────────────────────────────
 
@@ -72,6 +76,11 @@ export interface UpdateEquipmentRequest {
   serial?: string;
   assignedTo?: string;
   status?: "ACTIVE" | "INACTIVE" | "UNDER_MAINTENANCE" | "DECOMMISSIONED";
+  categoryId?: string | null;
+  hasLicense?: boolean;
+  licenseType?: string | null;
+  licenseExpiresAt?: string | null;
+  licenseNotes?: string | null;
 }
 
 export interface EquipmentListResponse {
@@ -162,4 +171,82 @@ export interface PushSubscribeRequest {
 export interface HealthResponse {
   status: "ok";
   timestamp: string;
+}
+
+// ─── Equipment Categories ───────────────────────────────
+
+export interface CreateEquipmentCategoryRequest {
+  name: string;
+  icon?: string;
+  isComputer?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateEquipmentCategoryRequest {
+  name?: string;
+  icon?: string | null;
+  isComputer?: boolean;
+  sortOrder?: number;
+}
+
+export interface EquipmentCategoryListResponse {
+  categories: EquipmentCategory[];
+}
+
+// ─── Equipment Components ───────────────────────────────
+
+export interface CreateEquipmentComponentRequest {
+  type: string;
+  name: string;
+  specs?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateEquipmentComponentRequest {
+  type?: string;
+  name?: string;
+  specs?: string | null;
+  sortOrder?: number;
+}
+
+export interface EquipmentComponentListResponse {
+  components: EquipmentComponent[];
+}
+
+// ─── Software ───────────────────────────────────────────
+
+export interface CreateSoftwareRequest {
+  name: string;
+  licenseType: string;
+  clientId: string;
+  equipmentId?: string | null;
+  expiresAt: string;
+  notes?: string;
+}
+
+export interface UpdateSoftwareRequest {
+  name?: string;
+  licenseType?: string;
+  equipmentId?: string | null;
+  expiresAt?: string;
+  notes?: string | null;
+}
+
+export interface SoftwareListResponse {
+  software: Software[];
+}
+
+// ─── Inventory ──────────────────────────────────────────
+
+export interface InventoryListResponse {
+  equipment: Equipment[];
+  software: Software[];
+}
+
+export interface InventoryFilters {
+  clientId?: string;
+  categoryId?: string;
+  status?: string;
+  licenseType?: string;
+  search?: string;
 }
