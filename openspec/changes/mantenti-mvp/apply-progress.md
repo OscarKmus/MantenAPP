@@ -1,99 +1,78 @@
 # Apply Progress: mantenti-mvp
 
-## Slice 1: Foundation (PR 1) — COMPLETE
-All 15 tasks completed in previous sessions.
-
-## Slice 2: Clients + Equipment CRUD (PR 2) — COMPLETE
-All 10 tasks completed in previous sessions.
-
-## Slice 3: Maintenance Workflow + Attachments (PR 3) — COMPLETE
-All 11 tasks completed in previous sessions.
-
-## Slice 4: Inventory (PR 4) — COMPLETE
+## Slice 5: PDF + Templates — COMPLETE
 
 ### Summary
-Implemented full inventory management system: equipment categories, hardware components, software licensing, and a unified inventory view.
 
-### Tasks Completed (17/17)
-- [x] 4.1 Add EquipmentCategory, EquipmentComponent, Software models + enums to Prisma schema
-- [x] 4.2 Extend Equipment model with categoryId, license fields, component/software relations
-- [x] 4.3 Run Prisma migration `inventory` + seed default categories
-- [x] 4.4 Implement equipment-categories module: full CRUD, 409 on delete if referenced
-- [x] 4.5 Implement equipment-components module: nested under equipment, CRUD
-- [x] 4.6 Implement software module: full CRUD, list by client/equipment
-- [x] 4.7 Extend equipment module: add category/license fields, include category+components in responses
-- [x] 4.8 Implement inventory endpoint: unified equipment+software with multi-filter support
-- [x] 4.9 Register all new routers in API index
-- [x] 4.10 Update shared types: EquipmentCategory, EquipmentComponent, Software, InventoryItem, API DTOs
-- [x] 4.11 Create Pinia inventory store with filters and fetch actions
-- [x] 4.12 Add "Inventario" sidebar link with icon
-- [x] 4.13 Build InventoryPage: equipment/software tabs, filters, search, cards/table
-- [x] 4.14 Add /inventory route to Vue router
-- [x] 4.15 Overhaul EquipmentForm with tabs: Datos, Componentes, Licencia
-- [x] 4.16 Make equipment cards clickable, add detail modal with @click.stop on edit/delete
-- [x] 4.17 Add Software tab to ClientDetailPage with CRUD
+Implemented server-side PDF generation for maintenance reports using `@react-pdf/renderer` (replacing the originally planned Puppeteer stack). The PDF is a professional branded document that includes company header, report metadata, client information, equipment table with action types, photo grid, and dual signatures (technician + client).
 
-### Files Created/Modified
+### Key Decisions
 
-**New files (API):**
-- `apps/api/prisma/migrations/20260618195016_inventory/migration.sql`
-- `apps/api/src/modules/equipment-categories/equipment-categories.schema.ts`
-- `apps/api/src/modules/equipment-categories/equipment-categories.service.ts`
-- `apps/api/src/modules/equipment-categories/equipment-categories.controller.ts`
-- `apps/api/src/modules/equipment-components/equipment-components.schema.ts`
-- `apps/api/src/modules/equipment-components/equipment-components.service.ts`
-- `apps/api/src/modules/equipment-components/equipment-components.controller.ts`
-- `apps/api/src/modules/software/software.schema.ts`
-- `apps/api/src/modules/software/software.service.ts`
-- `apps/api/src/modules/software/software.controller.ts`
-- `apps/api/src/modules/inventory/inventory.schema.ts`
-- `apps/api/src/modules/inventory/inventory.service.ts`
-- `apps/api/src/modules/inventory/inventory.controller.ts`
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **@react-pdf/renderer over Puppeteer** | No Chromium dependency (~0MB RAM vs ~200-400MB). Declarative JSX templates are easier to maintain. Works on small VPS without memory issues. |
+| 2 | **Sync PDF generation on close** | Dev simplicity. Close endpoint generates PDF immediately and returns `pdfPath`. Tradeoff: close takes ~1-2s longer. If PDF fails, close still succeeds (graceful degradation). |
+| 3 | **No PDFKit fallback** | @react-pdf/renderer has no OOM risk (no Chromium). Fallback unnecessary. |
+| 4 | **JSX template over Handlebars** | @react-pdf/renderer uses React JSX natively. Better type safety, IDE support, composability. |
 
-**New files (Web):**
-- `apps/web/src/stores/inventory.ts`
-- `apps/web/src/views/InventoryPage.vue`
+### Files Created
 
-**Modified files:**
-- `apps/api/prisma/schema.prisma` — Added EquipmentCategory, EquipmentComponent, Software models + enums
-- `apps/api/prisma/seed.ts` — Added default equipment categories
-- `apps/api/src/index.ts` — Registered new routers
-- `apps/api/src/modules/equipment/equipment.schema.ts` — Added category/license fields
-- `apps/api/src/modules/equipment/equipment.service.ts` — Added category/license handling, includes
-- `apps/web/src/components/layout/AppNav.vue` — Added Inventario link
-- `apps/web/src/components/equipment/EquipmentForm.vue` — Complete overhaul with tabs
-- `apps/web/src/components/equipment/EquipmentList.vue` — Clickable cards + detail modal
-- `apps/web/src/views/ClientDetailPage.vue` — Added Software tab
-- `apps/web/src/router/index.ts` — Added /inventory route
-- `packages/types/src/models.ts` — Added new types
-- `packages/types/src/api.ts` — Added new DTOs
+| File | Purpose |
+|------|---------|
+| `apps/api/src/services/pdf/report-template.tsx` | Professional PDF template (A4, branded header, metadata grid, client section, equipment table, photo grid, signatures, footer) |
+| `apps/api/src/services/pdf/pdf.service.ts` | PDF service: `generateMaintenancePdf`, `getMaintenancePdfPath`, `regenerateMaintenancePdf` |
+| `apps/web/src/components/maintenance/PdfStatus.vue` | Frontend component: 3-state button (download / generate / generating spinner) |
+| `apps/web/src/stores/pdf.ts` | Pinia store: blob→objectURL→click→revoke download flow |
 
-### Commits
-1. `013c734` — chore(db): add inventory schema (category, components, software)
-2. `145b07e` — feat(api): add equipment-categories module with CRUD
-3. `03a631e` — feat(api): add equipment components module nested under equipment
-4. `2b5af99` — feat(api): add software module with CRUD
-5. `d5c3248` — feat(api): extend equipment with category, license fields + components include
-6. `d983b16` — feat(api): add inventory endpoint with multi-filter support
-7. `7716802` — feat(web): add equipment category CRUD + sidebar Inventario link
-8. `d3b4e9d` — feat(web): add equipment detail modal + clickable cards
-9. `50acf98` — feat(web): overhaul equipment form with tabs (data/components/license)
-10. `219cd29` — feat(web): add software management under client detail
-11. `72ee8de` — feat(web): add inventory page with filters
-12. `3675b97` — chore(slice-4): mark tasks complete + add apply-progress report
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/api/package.json` | Added `@react-pdf/renderer`, `react`, `@types/react` |
+| `apps/api/tsconfig.json` | Added `"jsx": "react-jsx"` for JSX template support |
+| `apps/api/src/config/env.ts` | Added `COMPANY_NAME` and `COMPANY_LOGO_URL` env vars |
+| `apps/api/src/modules/maintenances/maintenances.controller.ts` | Added PDF download (`GET /:id/pdf`), regenerate (`POST /:id/pdf/regenerate`), updated close to trigger PDF gen |
+| `apps/web/src/views/MaintenanceFlowPage.vue` | Step 3 (Done) now shows PdfStatus with download button |
+| `apps/web/src/views/ClientDetailPage.vue` | Resumen tab shows latest closed maintenance with PDF download |
+| `.env.example` | Added `COMPANY_NAME` and `COMPANY_LOGO_URL` |
+
+### PDF Template Sections (in order)
+
+1. **Header**: Company name + logo placeholder, "Reporte de Mantención" subtitle
+2. **Metadata grid**: Report number (MT-YYYYMMDD-{id-suffix}), date, technician, duration
+3. **Client section**: Name (large), location, contact, phone, email, next maintenance dates (3-state: base/acordada/efectiva)
+4. **Equipment table**: Name, category, IP/MAC/Serial (monospace), action type (colored badge), observations, photos count, completed checkmark
+5. **Photos section**: 3-per-row grid with captions
+6. **Signatures section**: Technician signature + client signature with names
+7. **Footer**: Page number, company name, generation date
 
 ### Build Verification
-- ✅ `pnpm --filter api build` — PASSED
-- ✅ `pnpm --filter web build` — PASSED
 
-### Deviations from Design
-None — implementation matches design.
+- ✅ `pnpm --filter api build` — passes
+- ✅ `pnpm --filter web build` — passes
 
-### Issues Found
-None.
+### Commits
 
-## Slice 5: PDF + Templates (PR 5) — PENDING
-13 tasks remaining.
+| Hash | Message |
+|------|---------|
+| `8fa3202` | `chore(deps): add @react-pdf/renderer for PDF generation` |
+| `05ad745` | `feat(api): add PDF generation service with branded report template` |
+| `1194e5f` | `feat(web): add PDF download/generate buttons to maintenance flow and client detail` |
+| `d27f71d` | `chore(slice-5): mark PDF generation tasks complete in tasks.md` |
 
-## Slice 6: History + Notifications (PR 6) — PENDING
-13 tasks remaining.
+### Tasks Completed
+
+All 17 Slice 5 tasks (5.1–5.17) marked `[x]` in tasks.md.
+
+### Remaining Work
+
+Slice 6 (History + Notifications) is the final slice:
+- Client history endpoint + list view
+- Notifications module + web push
+- Notification bell component
+
+### Notes for Next Slice
+
+- The `ClientDetailPage.vue` already has a "Historial" tab (currently disabled/placeholder)
+- The PDF download button is already in the Resumen tab — Slice 6 should add it per-row in the history list
+- The `pdfPath` and `pdfEngine` fields are already in the Maintenance model and shared types
