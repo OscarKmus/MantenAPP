@@ -1,14 +1,50 @@
 import * as fs from "fs";
 import * as path from "path";
-import { renderToBuffer } from "@react-pdf/renderer";
-import React from "react";
+import PDFDocument from "pdfkit";
 import prisma from "../../lib/prisma";
 import { getEnv } from "../../config/env";
-import { MaintenanceReport } from "./report-template";
 
 const STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 
-// ─── Report Number ─────────────────────────────────────
+// ─── Colors ─────────────────────────────────────────────
+const BRAND_COLOR = "#2563eb";
+const BRAND_LIGHT = "#eff6ff";
+const TEXT_PRIMARY = "#1e293b";
+const TEXT_SECONDARY = "#64748b";
+const TEXT_MUTED = "#94a3b8";
+const BORDER_COLOR = "#e2e8f0";
+const SUCCESS_COLOR = "#16a34a";
+
+// ─── Helpers ────────────────────────────────────────────
+function formatDate(isoString: string | null): string {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleDateString("es", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function formatDateTime(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleDateString("es", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 function generateReportNumber(maintenanceId: string): string {
   const now = new Date();
   const y = now.getFullYear();
@@ -18,7 +54,6 @@ function generateReportNumber(maintenanceId: string): string {
   return `MT-${y}${m}${d}-${suffix}`;
 }
 
-// ─── Duration Calculation ──────────────────────────────
 function calculateDuration(createdAt: Date, closedAt: Date): string {
   const diffMs = closedAt.getTime() - createdAt.getTime();
   const diffMins = Math.round(diffMs / 60000);
@@ -28,7 +63,6 @@ function calculateDuration(createdAt: Date, closedAt: Date): string {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 }
 
-// ─── Get Identifier (IP, MAC, or Serial) ──────────────
 function getIdentifier(equipment: {
   ip: string | null;
   mac: string | null;
@@ -40,7 +74,7 @@ function getIdentifier(equipment: {
   return null;
 }
 
-// ─── Generate PDF ──────────────────────────────────────
+// ─── PDF Generation ─────────────────────────────────────
 export async function generateMaintenancePdf(
   maintenanceId: string
 ): Promise<{ pdfPath: string; pdfEngine: string }> {
@@ -91,8 +125,9 @@ export async function generateMaintenancePdf(
   // ─── Build report data ─────────────────────────────
   const closedAt = maintenance.closedAt || maintenance.updatedAt;
   const duration = calculateDuration(maintenance.createdAt, closedAt);
+  const reportNumber = generateReportNumber(maintenanceId);
 
-  // Items
+  // Items data
   const items = maintenance.items.map((item) => {
     const itemAttachments = attachments.filter(
       (a) => a.scope === "MAINTENANCE_ITEM" && a.parentId === item.id
@@ -110,9 +145,8 @@ export async function generateMaintenancePdf(
   });
 
   // Photos (maintenance-level + item-level)
-  const photos: Array<{ data: string; caption: string }> = [];
+  const photos: Array<{ buffer: Buffer; caption: string }> = [];
 
-  // Maintenance-level photos
   const maintenanceAttachments = attachments.filter(
     (a) => a.scope === "MAINTENANCE"
   );
@@ -120,17 +154,12 @@ export async function generateMaintenancePdf(
     const filePath = path.join(STORAGE_ROOT, att.storagePath);
     try {
       const buffer = await fs.promises.readFile(filePath);
-      const base64 = buffer.toString("base64");
-      photos.push({
-        data: `data:${att.mimeType};base64,${base64}`,
-        caption: att.fileName,
-      });
+      photos.push({ buffer, caption: att.fileName });
     } catch {
       // Skip missing files
     }
   }
 
-  // Item-level photos
   for (const item of maintenance.items) {
     const itemAtts = attachments.filter(
       (a) => a.scope === "MAINTENANCE_ITEM" && a.parentId === item.id
@@ -139,9 +168,8 @@ export async function generateMaintenancePdf(
       const filePath = path.join(STORAGE_ROOT, att.storagePath);
       try {
         const buffer = await fs.promises.readFile(filePath);
-        const base64 = buffer.toString("base64");
         photos.push({
-          data: `data:${att.mimeType};base64,${base64}`,
+          buffer,
           caption: `${item.equipment.name} — ${att.fileName}`,
         });
       } catch {
@@ -151,14 +179,13 @@ export async function generateMaintenancePdf(
   }
 
   // Signatures
-  let clientSignatureData: string | null = null;
-  let technicianSignatureData: string | null = null;
+  let clientSignatureBuffer: Buffer | null = null;
+  let technicianSignatureBuffer: Buffer | null = null;
 
   if (maintenance.signatureData) {
     const sigPath = path.join(STORAGE_ROOT, maintenance.signatureData);
     try {
-      const sigBuffer = await fs.promises.readFile(sigPath);
-      clientSignatureData = `data:image/png;base64,${sigBuffer.toString("base64")}`;
+      clientSignatureBuffer = await fs.promises.readFile(sigPath);
     } catch {
       // Signature file missing
     }
@@ -167,46 +194,13 @@ export async function generateMaintenancePdf(
   if (maintenance.technicianSignatureData) {
     const sigPath = path.join(STORAGE_ROOT, maintenance.technicianSignatureData);
     try {
-      const sigBuffer = await fs.promises.readFile(sigPath);
-      technicianSignatureData = `data:image/png;base64,${sigBuffer.toString("base64")}`;
+      technicianSignatureBuffer = await fs.promises.readFile(sigPath);
     } catch {
       // Signature file missing
     }
   }
 
-  const reportData = {
-    companyName: env.COMPANY_NAME,
-    companyLogoUrl: env.COMPANY_LOGO_URL || undefined,
-    reportNumber: generateReportNumber(maintenanceId),
-    maintenanceId,
-    closedAt: closedAt.toISOString(),
-    technicianName: maintenance.technician.fullName,
-    duration,
-    client: {
-      name: maintenance.client.name,
-      location: maintenance.client.location,
-      contactName: maintenance.client.contactName,
-      contactPhone: maintenance.client.contactPhone,
-      contactEmail: maintenance.client.contactEmail,
-      nextMaintenanceBaseAt:
-        maintenance.client.nextMaintenanceBaseAt?.toISOString() || null,
-      nextMaintenanceAgreedAt:
-        maintenance.client.nextMaintenanceAgreedAt?.toISOString() || null,
-      nextMaintenanceAt:
-        maintenance.client.nextMaintenanceAt?.toISOString() || null,
-    },
-    items,
-    photos,
-    clientSignatureData,
-    technicianSignatureData,
-    notes: maintenance.notes,
-  };
-
-  // ─── Render PDF ────────────────────────────────────
-  const element = React.createElement(MaintenanceReport, { data: reportData });
-  const buffer = await renderToBuffer(element as any);
-
-  // ─── Save to storage ──────────────────────────────
+  // ─── Generate PDF with PDFKit ─────────────────────
   const year = closedAt.getFullYear().toString();
   const month = (closedAt.getMonth() + 1).toString().padStart(2, "0");
   const pdfDir = path.join(STORAGE_ROOT, "pdfs", year, month);
@@ -214,7 +208,628 @@ export async function generateMaintenancePdf(
 
   const pdfFilename = `${maintenanceId}.pdf`;
   const pdfFullPath = path.join(pdfDir, pdfFilename);
-  await fs.promises.writeFile(pdfFullPath, buffer);
+
+  await new Promise<void>((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 50,
+      info: {
+        Title: "Reporte de Mantención",
+        Author: env.COMPANY_NAME,
+      },
+    });
+
+    const stream = fs.createWriteStream(pdfFullPath);
+    doc.pipe(stream);
+
+    const pageWidth = doc.page.width - 100; // margins
+    let currentY = 50;
+
+    // ─── Header ──────────────────────────────────────
+    doc
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .fillColor(BRAND_COLOR)
+      .text(env.COMPANY_NAME, 50, currentY);
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text("Reporte de Mantención", 50, currentY + 28);
+
+    // Blue line under header
+    currentY += 50;
+    doc
+      .moveTo(50, currentY)
+      .lineTo(50 + pageWidth, currentY)
+      .strokeColor(BRAND_COLOR)
+      .lineWidth(2)
+      .stroke();
+
+    currentY += 20;
+
+    // ─── Metadata Grid ──────────────────────────────
+    const metaBoxHeight = 60;
+    doc
+      .rect(50, currentY, pageWidth, metaBoxHeight)
+      .fill(BRAND_LIGHT);
+
+    const metaItems = [
+      { label: "N° Reporte", value: reportNumber },
+      { label: "Fecha", value: formatDateTime(closedAt.toISOString()) },
+      { label: "Técnico", value: maintenance.technician.fullName },
+      { label: "Duración", value: duration },
+    ];
+
+    const metaColWidth = pageWidth / 4;
+    metaItems.forEach((item, i) => {
+      const x = 50 + i * metaColWidth + 10;
+      doc
+        .fontSize(7)
+        .font("Helvetica")
+        .fillColor(TEXT_MUTED)
+        .text(item.label.toUpperCase(), x, currentY + 10, {
+          width: metaColWidth - 20,
+        });
+      doc
+        .fontSize(10)
+        .font("Helvetica-Bold")
+        .fillColor(TEXT_PRIMARY)
+        .text(item.value, x, currentY + 25, {
+          width: metaColWidth - 20,
+        });
+    });
+
+    currentY += metaBoxHeight + 20;
+
+    // ─── Client Section ─────────────────────────────
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .fillColor(BRAND_COLOR)
+      .text("Cliente", 50, currentY);
+
+    currentY += 8;
+    doc
+      .moveTo(50, currentY)
+      .lineTo(50 + pageWidth, currentY)
+      .strokeColor(BORDER_COLOR)
+      .lineWidth(1)
+      .stroke();
+
+    currentY += 12;
+
+    doc
+      .fontSize(16)
+      .font("Helvetica-Bold")
+      .fillColor(TEXT_PRIMARY)
+      .text(maintenance.client.name, 50, currentY);
+
+    currentY += 25;
+
+    const clientFields = [
+      { label: "Ubicación", value: maintenance.client.location },
+      { label: "Contacto", value: maintenance.client.contactName },
+      { label: "Teléfono", value: maintenance.client.contactPhone },
+      { label: "Email", value: maintenance.client.contactEmail },
+    ];
+
+    for (const field of clientFields) {
+      if (field.value) {
+        doc
+          .fontSize(9)
+          .font("Helvetica")
+          .fillColor(TEXT_MUTED)
+          .text(field.label + ":", 50, currentY, { continued: true })
+          .fillColor(TEXT_PRIMARY)
+          .text(" " + field.value);
+        currentY += 16;
+      }
+    }
+
+    currentY += 10;
+
+    // Date cards
+    const dateCardWidth = (pageWidth - 10) / 2;
+    const dateCardHeight = 50;
+
+    // "Fecha de esta mantención" card
+    doc
+      .rect(50, currentY, dateCardWidth, dateCardHeight)
+      .fill(BRAND_LIGHT);
+    doc
+      .fontSize(8)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text("FECHA DE ESTA MANTENCIÓN", 50 + 10, currentY + 10, {
+        width: dateCardWidth - 20,
+      });
+    doc
+      .fontSize(14)
+      .font("Helvetica-Bold")
+      .fillColor(BRAND_COLOR)
+      .text(
+        formatDate(closedAt.toISOString()),
+        50 + 10,
+        currentY + 25,
+        { width: dateCardWidth - 20 }
+      );
+
+    // "Próxima mantención" card
+    if (maintenance.client.nextMaintenanceAt) {
+      doc
+        .rect(50 + dateCardWidth + 10, currentY, dateCardWidth, dateCardHeight)
+        .fill("#f0fdf4");
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .fillColor("#16a34a")
+        .text("PRÓXIMA MANTENCIÓN", 50 + dateCardWidth + 20, currentY + 10, {
+          width: dateCardWidth - 20,
+        });
+      doc
+        .fontSize(14)
+        .font("Helvetica-Bold")
+        .fillColor("#15803d")
+        .text(
+          formatDate(maintenance.client.nextMaintenanceAt.toISOString()),
+          50 + dateCardWidth + 20,
+          currentY + 25,
+          { width: dateCardWidth - 20 }
+        );
+    }
+
+    currentY += dateCardHeight + 25;
+
+    // ─── Equipment Table ────────────────────────────
+    // Check if we need a new page
+    if (currentY > 600) {
+      doc.addPage();
+      currentY = 50;
+    }
+
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .fillColor(BRAND_COLOR)
+      .text("Equipos Revisados", 50, currentY);
+
+    currentY += 8;
+    doc
+      .moveTo(50, currentY)
+      .lineTo(50 + pageWidth, currentY)
+      .strokeColor(BORDER_COLOR)
+      .lineWidth(1)
+      .stroke();
+
+    currentY += 12;
+
+    // Table header
+    const colWidths = [
+      pageWidth * 0.2,  // Equipo
+      pageWidth * 0.12, // Categoría
+      pageWidth * 0.14, // IP/MAC/Serie
+      pageWidth * 0.14, // Acción
+      pageWidth * 0.24, // Observaciones
+      pageWidth * 0.08, // Fotos
+      pageWidth * 0.08, // ✓
+    ];
+    const colX = [50];
+    for (let i = 1; i < colWidths.length; i++) {
+      colX.push(colX[i - 1] + colWidths[i - 1]);
+    }
+
+    const tableHeaderHeight = 22;
+    doc.rect(50, currentY, pageWidth, tableHeaderHeight).fill(BRAND_COLOR);
+
+    const headerLabels = [
+      "EQUIPO",
+      "CATEGORÍA",
+      "IP/MAC/SERIE",
+      "ACCIÓN",
+      "OBSERVACIONES",
+      "FOTOS",
+      "✓",
+    ];
+
+    headerLabels.forEach((label, i) => {
+      doc
+        .fontSize(7)
+        .font("Helvetica-Bold")
+        .fillColor("#ffffff")
+        .text(label, colX[i] + 4, currentY + 7, {
+          width: colWidths[i] - 8,
+        });
+    });
+
+    currentY += tableHeaderHeight;
+
+    // Table rows
+    if (items.length === 0) {
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .fillColor(TEXT_MUTED)
+        .text("No hay equipos registrados", 50, currentY + 10, {
+          align: "center",
+          width: pageWidth,
+        });
+      currentY += 30;
+    } else {
+      items.forEach((item, idx) => {
+        const rowHeight = 28;
+        const rowBg = idx % 2 === 0 ? "#f8fafc" : "#ffffff";
+
+        // Check page break
+        if (currentY + rowHeight > 750) {
+          doc.addPage();
+          currentY = 50;
+        }
+
+        doc.rect(50, currentY, pageWidth, rowHeight).fill(rowBg);
+
+        doc
+          .fontSize(8)
+          .font("Helvetica")
+          .fillColor(TEXT_PRIMARY)
+          .text(item.equipmentName, colX[0] + 4, currentY + 8, {
+            width: colWidths[0] - 8,
+          });
+
+        doc
+          .fontSize(7)
+          .fillColor(TEXT_SECONDARY)
+          .text(item.categoryName || "—", colX[1] + 4, currentY + 8, {
+            width: colWidths[1] - 8,
+          });
+
+        doc
+          .fontSize(7)
+          .fillColor(TEXT_SECONDARY)
+          .text(item.identifier || "—", colX[2] + 4, currentY + 8, {
+            width: colWidths[2] - 8,
+          });
+
+        // Action badge
+        if (item.actionTypeName) {
+          doc
+            .fontSize(7)
+            .font("Helvetica-Bold")
+            .fillColor(item.actionTypeColor || TEXT_PRIMARY)
+            .text(item.actionTypeName, colX[3] + 4, currentY + 8, {
+              width: colWidths[3] - 8,
+            });
+        } else {
+          doc
+            .fontSize(7)
+            .font("Helvetica")
+            .fillColor(TEXT_SECONDARY)
+            .text("—", colX[3] + 4, currentY + 8);
+        }
+
+        // Observations (truncated)
+        const obsText = item.observations
+          ? item.observations.length > 80
+            ? item.observations.substring(0, 80) + "..."
+            : item.observations
+          : "—";
+        doc
+          .fontSize(7)
+          .font("Helvetica")
+          .fillColor(TEXT_SECONDARY)
+          .text(obsText, colX[4] + 4, currentY + 8, {
+            width: colWidths[4] - 8,
+          });
+
+        // Photo count
+        doc
+          .fontSize(7)
+          .fillColor(TEXT_SECONDARY)
+          .text(
+            item.photoCount > 0 ? `${item.photoCount}` : "—",
+            colX[5] + 4,
+            currentY + 8
+          );
+
+        // Checkmark
+        if (item.completed) {
+          doc
+            .fontSize(10)
+            .fillColor(SUCCESS_COLOR)
+            .text("✓", colX[6] + 4, currentY + 6);
+        }
+
+        // Bottom border
+        doc
+          .moveTo(50, currentY + rowHeight)
+          .lineTo(50 + pageWidth, currentY + rowHeight)
+          .strokeColor(BORDER_COLOR)
+          .lineWidth(0.5)
+          .stroke();
+
+        currentY += rowHeight;
+      });
+    }
+
+    currentY += 15;
+
+    // ─── Photos Section ─────────────────────────────
+    if (photos.length > 0) {
+      // Check page break
+      if (currentY > 600) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .fillColor(BRAND_COLOR)
+        .text("Fotografías", 50, currentY);
+
+      currentY += 8;
+      doc
+        .moveTo(50, currentY)
+        .lineTo(50 + pageWidth, currentY)
+        .strokeColor(BORDER_COLOR)
+        .lineWidth(1)
+        .stroke();
+
+      currentY += 12;
+
+      const photoWidth = (pageWidth - 20) / 3;
+      const photoHeight = 80;
+
+      photos.forEach((photo, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const x = 50 + col * (photoWidth + 10);
+        const y = currentY + row * (photoHeight + 25);
+
+        // Check page break
+        if (y + photoHeight + 25 > 750) {
+          doc.addPage();
+          currentY = 50;
+          // Recalculate position on new page
+          const newRow = 0;
+          const newY = currentY + newRow * (photoHeight + 25);
+          try {
+            doc.image(photo.buffer, x, newY, {
+              width: photoWidth,
+              height: photoHeight,
+              fit: [photoWidth, photoHeight],
+            });
+          } catch {
+            // Skip invalid image
+          }
+          doc
+            .fontSize(7)
+            .font("Helvetica")
+            .fillColor(TEXT_MUTED)
+            .text(photo.caption, x, newY + photoHeight + 4, {
+              width: photoWidth,
+              align: "center",
+            });
+          return;
+        }
+
+        try {
+          doc.image(photo.buffer, x, y, {
+            width: photoWidth,
+            height: photoHeight,
+            fit: [photoWidth, photoHeight],
+          });
+        } catch {
+          // Skip invalid image
+        }
+
+        doc
+          .fontSize(7)
+          .font("Helvetica")
+          .fillColor(TEXT_MUTED)
+          .text(photo.caption, x, y + photoHeight + 4, {
+            width: photoWidth,
+            align: "center",
+          });
+      });
+
+      const photoRows = Math.ceil(photos.length / 3);
+      currentY += photoRows * (photoHeight + 25) + 10;
+    }
+
+    // ─── Notes Section ──────────────────────────────
+    if (maintenance.notes) {
+      if (currentY > 650) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .fillColor(BRAND_COLOR)
+        .text("Observaciones Generales", 50, currentY);
+
+      currentY += 8;
+      doc
+        .moveTo(50, currentY)
+        .lineTo(50 + pageWidth, currentY)
+        .strokeColor(BORDER_COLOR)
+        .lineWidth(1)
+        .stroke();
+
+      currentY += 12;
+
+      // Notes box
+      const notesBoxY = currentY;
+      doc
+        .rect(50, notesBoxY, pageWidth, 60)
+        .fill("#fffbeb")
+        .stroke("#fde68a");
+
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .fillColor("#92400e")
+        .text(maintenance.notes, 60, notesBoxY + 10, {
+          width: pageWidth - 20,
+        });
+
+      currentY = notesBoxY + 70;
+    }
+
+    // ─── Signatures Section ─────────────────────────
+    if (technicianSignatureBuffer || clientSignatureBuffer) {
+      if (currentY > 600) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .fillColor(BRAND_COLOR)
+        .text("Firmas", 50, currentY);
+
+      currentY += 8;
+      doc
+        .moveTo(50, currentY)
+        .lineTo(50 + pageWidth, currentY)
+        .strokeColor(BORDER_COLOR)
+        .lineWidth(1)
+        .stroke();
+
+      currentY += 20;
+
+      const sigWidth = 180;
+      const sigHeight = 80;
+      const sigSpacing = (pageWidth - sigWidth * 2) / 3;
+
+      // Technician signature (left)
+      const techSigX = 50 + sigSpacing;
+      if (technicianSignatureBuffer) {
+        try {
+          doc.image(technicianSignatureBuffer, techSigX, currentY, {
+            width: sigWidth,
+            height: sigHeight,
+            fit: [sigWidth, sigHeight],
+          });
+        } catch {
+          // Skip invalid signature
+        }
+      }
+
+      doc
+        .moveTo(techSigX, currentY + sigHeight + 4)
+        .lineTo(techSigX + sigWidth, currentY + sigHeight + 4)
+        .strokeColor(TEXT_PRIMARY)
+        .lineWidth(1)
+        .stroke();
+
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .fillColor(TEXT_SECONDARY)
+        .text("Firma del Técnico", techSigX, currentY + sigHeight + 10, {
+          width: sigWidth,
+          align: "center",
+        });
+
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .fillColor(TEXT_PRIMARY)
+        .text(maintenance.technician.fullName, techSigX, currentY + sigHeight + 24, {
+          width: sigWidth,
+          align: "center",
+        });
+
+      // Client signature (right)
+      const clientSigX = techSigX + sigWidth + sigSpacing;
+      if (clientSignatureBuffer) {
+        try {
+          doc.image(clientSignatureBuffer, clientSigX, currentY, {
+            width: sigWidth,
+            height: sigHeight,
+            fit: [sigWidth, sigHeight],
+          });
+        } catch {
+          // Skip invalid signature
+        }
+      }
+
+      doc
+        .moveTo(clientSigX, currentY + sigHeight + 4)
+        .lineTo(clientSigX + sigWidth, currentY + sigHeight + 4)
+        .strokeColor(TEXT_PRIMARY)
+        .lineWidth(1)
+        .stroke();
+
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .fillColor(TEXT_SECONDARY)
+        .text("Firma del Cliente", clientSigX, currentY + sigHeight + 10, {
+          width: sigWidth,
+          align: "center",
+        });
+
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .fillColor(TEXT_PRIMARY)
+        .text(maintenance.client.name, clientSigX, currentY + sigHeight + 24, {
+          width: sigWidth,
+          align: "center",
+        });
+    }
+
+    // ─── Footer (on every page) ─────────────────────
+    const { start: pageStart, count: pageCount } = doc.bufferedPageRange();
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(pageStart + i);
+
+      const footerY = doc.page.height - 40;
+
+      doc
+        .moveTo(50, footerY)
+        .lineTo(50 + pageWidth, footerY)
+        .strokeColor(BORDER_COLOR)
+        .lineWidth(0.5)
+        .stroke();
+
+      doc
+        .fontSize(7)
+        .font("Helvetica")
+        .fillColor(TEXT_MUTED)
+        .text(
+          `${env.COMPANY_NAME} — Reporte de Mantención`,
+          50,
+          footerY + 8,
+          { width: pageWidth / 3 }
+        );
+
+      doc.text(
+        `Página ${i + 1} de ${pageCount}`,
+        50 + pageWidth / 3,
+        footerY + 8,
+        { width: pageWidth / 3, align: "center" }
+      );
+
+      doc.text(
+        `Generado: ${formatDate(new Date().toISOString())}`,
+        50 + (pageWidth * 2) / 3,
+        footerY + 8,
+        { width: pageWidth / 3, align: "right" }
+      );
+    }
+
+    doc.end();
+
+    stream.on("finish", () => resolve());
+    stream.on("error", (err) => reject(err));
+  });
 
   const pdfStoragePath = `pdfs/${year}/${month}/${pdfFilename}`;
 
@@ -223,11 +838,11 @@ export async function generateMaintenancePdf(
     where: { id: maintenanceId },
     data: {
       pdfPath: pdfStoragePath,
-      pdfEngine: "react-pdf",
+      pdfEngine: "pdfkit",
     },
   });
 
-  return { pdfPath: pdfStoragePath, pdfEngine: "react-pdf" };
+  return { pdfPath: pdfStoragePath, pdfEngine: "pdfkit" };
 }
 
 // ─── Get PDF Path ──────────────────────────────────────

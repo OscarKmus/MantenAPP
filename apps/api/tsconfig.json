@@ -10,8 +10,7 @@
     "rootDir": "./src",
     "declaration": true,
     "resolveJsonModule": true,
-    "sourceMap": true,
-    "jsx": "react-jsx"
+    "sourceMap": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
