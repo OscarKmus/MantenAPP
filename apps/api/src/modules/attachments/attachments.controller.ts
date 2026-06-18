@@ -21,7 +21,11 @@ attachmentsRouter.use(authMiddleware);
 
 // Helper to safely extract param
 function getParam(val: string | string[]): string {
-  return Array.isArray(val) ? val[0] : val;
+  if (Array.isArray(val)) {
+    // path-to-regexp v8: *name returns an array of path segments; join them.
+    return val.join("/");
+  }
+  return val;
 }
 
 // POST /api/maintenances/:id/attachments — upload to maintenance scope
@@ -106,7 +110,9 @@ attachmentsRouter.get(
   "/files/*path",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const storagePath = getParam(req.params.path);
+      // Express 5 *path includes the leading slash; strip it so resolvePath doesn't treat it as absolute on Windows.
+      const rawPath = getParam(req.params.path);
+      const storagePath = rawPath.replace(/^\/+/, "");
 
       // Resolve and validate path (LocalStorageProvider has traversal protection)
       let fullPath: string;

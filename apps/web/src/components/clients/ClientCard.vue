@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, onBeforeUnmount, onMounted } from "vue";
 import type { Client } from "@mantenti/types";
 
 interface ClientWithMeta extends Client {
@@ -12,7 +12,43 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   click: [];
+  delete: [id: string];
 }>();
+
+const menuOpen = ref(false);
+const menuRef = ref<HTMLElement | null>(null);
+
+function toggleMenu(e: Event) {
+  e.stopPropagation();
+  menuOpen.value = !menuOpen.value;
+}
+
+function closeMenu() {
+  menuOpen.value = false;
+}
+
+function handleDelete(e: Event) {
+  e.stopPropagation();
+  if (confirm(`¿Eliminar el cliente "${props.client.name}"?\n\nEsta acción no se puede deshacer.`)) {
+    emit("delete", props.client.id);
+  }
+  closeMenu();
+}
+
+function handleCardClick() {
+  if (!menuOpen.value) {
+    emit("click");
+  }
+}
+
+function onDocumentClick(e: MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+    closeMenu();
+  }
+}
+
+onMounted(() => document.addEventListener("click", onDocumentClick));
+onBeforeUnmount(() => document.removeEventListener("click", onDocumentClick));
 
 const nextMaintenanceLabel = computed(() => {
   if (!props.client.nextMaintenanceAt) return null;
@@ -41,16 +77,16 @@ const formattedDate = computed(() => {
 </script>
 
 <template>
-  <button
-    class="w-full text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm
+  <div
+    class="relative w-full text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm
            hover:shadow-md hover:border-primary-200 transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
-           active:scale-[0.98] min-h-[44px]"
-    @click="emit('click')"
+           focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2
+           active:scale-[0.98] cursor-pointer"
+    @click="handleCardClick"
   >
-    <!-- Header: name + badge -->
+    <!-- Header: name + badge + menu -->
     <div class="flex items-start justify-between gap-3 mb-3">
-      <h3 class="font-semibold text-slate-800 text-base leading-tight truncate">
+      <h3 class="font-semibold text-slate-800 text-base leading-tight truncate flex-1 min-w-0">
         {{ client.name }}
       </h3>
       <span
@@ -62,6 +98,52 @@ const formattedDate = computed(() => {
       >
         {{ nextMaintenanceLabel.text }}
       </span>
+
+      <!-- Actions menu -->
+      <div ref="menuRef" class="relative shrink-0" @click.stop>
+        <button
+          type="button"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+          title="Más acciones"
+          aria-label="Más acciones"
+          @click="toggleMenu"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+
+        <div
+          v-if="menuOpen"
+          class="absolute right-0 mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg
+                 py-1 z-20"
+        >
+          <button
+            type="button"
+            class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50
+                   flex items-center gap-2"
+            @click.stop="handleCardClick(); closeMenu()"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Ver detalle
+          </button>
+          <button
+            type="button"
+            class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50
+                   flex items-center gap-2"
+            @click="handleDelete"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Location -->
@@ -88,5 +170,5 @@ const formattedDate = computed(() => {
         {{ formattedDate }}
       </span>
     </div>
-  </button>
+  </div>
 </template>

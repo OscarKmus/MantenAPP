@@ -27,6 +27,14 @@ function handleCreate(data: Record<string, unknown>) {
 function goToClient(id: string) {
   router.push({ name: "client-detail", params: { id } });
 }
+
+async function handleDelete(id: string) {
+  try {
+    await store.deleteClient(id);
+  } catch (e) {
+    // The store sets store.error; the UI shows it
+  }
+}
 </script>
 
 <template>
@@ -140,6 +148,7 @@ function goToClient(id: string) {
         :key="client.id"
         :client="client"
         @click="goToClient(client.id)"
+        @delete="handleDelete"
       />
     </div>
 
