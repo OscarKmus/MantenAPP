@@ -48,8 +48,9 @@ async function handleDeleteClient() {
   try {
     await clientStore.deleteClient(client.value.id);
     router.push({ name: "clients" });
-  } catch (e) {
-    // Error is exposed via clientStore.error
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || e?.message || "No se pudo eliminar el cliente";
+    alert(`No se pudo eliminar el cliente:\n\n${msg}`);
   }
 }
 
@@ -61,8 +62,13 @@ function handleUpdateEquipment(id: string, data: Record<string, unknown>) {
   equipmentStore.updateEquipment(id, data);
 }
 
-function handleDeleteEquipment(id: string) {
-  equipmentStore.deleteEquipment(id);
+async function handleDeleteEquipment(id: string) {
+  try {
+    await equipmentStore.deleteEquipment(id);
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || e?.message || "No se pudo eliminar el equipo";
+    alert(`No se pudo eliminar el equipo:\n\n${msg}`);
+  }
 }
 
 const nextMaintenanceDisplay = computed(() => {

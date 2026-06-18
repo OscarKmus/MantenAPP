@@ -68,7 +68,7 @@ function handleSubmit(data: Record<string, unknown>) {
 }
 
 function handleDelete(eq: Equipment) {
-  if (confirm(`¿Eliminar "${eq.name}"?`)) {
+  if (confirm(`¿Eliminar "${eq.name}"?\n\nSi tiene historial de mantenciones, no se podrá borrar.`)) {
     emit("delete", eq.id);
   }
 }

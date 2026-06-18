@@ -31,8 +31,9 @@ function goToClient(id: string) {
 async function handleDelete(id: string) {
   try {
     await store.deleteClient(id);
-  } catch (e) {
-    // The store sets store.error; the UI shows it
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || e?.message || "No se pudo eliminar el cliente";
+    alert(`No se pudo eliminar el cliente:\n\n${msg}`);
   }
 }
 </script>
