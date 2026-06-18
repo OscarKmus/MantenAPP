@@ -128,7 +128,24 @@ attachmentsRouter.get(
       // Stream the file
       const stream = await localStorage.getReadStream(storagePath);
       res.setHeader("Content-Type", attachment?.mimeType ?? "application/octet-stream");
+      res.setHeader("Content-Length", String(require("fs").statSync(localStorage.resolvePath(storagePath)).size));
       res.setHeader("Cache-Control", "public, max-age=31536000");
+
+      // Handle stream errors so a client disconnect doesn't crash the process
+      stream.on("error", (err) => {
+        console.error("[files] stream error:", err.message);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to read file" });
+        } else {
+          res.end();
+        }
+      });
+      res.on("close", () => {
+        // Client disconnected — destroy the stream so we don't keep reading
+        if (!res.writableEnded) {
+          stream.destroy();
+        }
+      });
 
       // Node.js streams
       if (stream instanceof require("fs").ReadStream) {
@@ -137,9 +154,15 @@ attachmentsRouter.get(
         // For other stream types, collect and send
         const chunks: Buffer[] = [];
         for await (const chunk of stream) {
-          chunks.push(Buffer.from(chunk));
+          if (!res.writableEnded) {
+            chunks.push(Buffer.from(chunk));
+          } else {
+            break;
+          }
         }
-        res.send(Buffer.concat(chunks));
+        if (!res.writableEnded) {
+          res.send(Buffer.concat(chunks));
+        }
       }
     } catch (error) {
       next(error);
