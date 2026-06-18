@@ -67,6 +67,31 @@ export const useInventoryStore = defineStore("inventory", () => {
     }
   }
 
+  async function updateCategory(id: string, input: { name?: string; icon?: string; isComputer?: boolean }) {
+    try {
+      const { data } = await api.patch<{ category: EquipmentCategory }>(
+        `/equipment-categories/${id}`,
+        input
+      );
+      const idx = categories.value.findIndex((c) => c.id === id);
+      if (idx !== -1) {
+        categories.value[idx] = data.category;
+      }
+      return data.category;
+    } catch (err: any) {
+      throw err;
+    }
+  }
+
+  async function deleteCategory(id: string) {
+    try {
+      await api.delete(`/equipment-categories/${id}`);
+      categories.value = categories.value.filter((c) => c.id !== id);
+    } catch (err: any) {
+      throw err;
+    }
+  }
+
   function setFilter(key: keyof typeof filters.value, value: string) {
     filters.value[key] = value;
   }
@@ -91,6 +116,8 @@ export const useInventoryStore = defineStore("inventory", () => {
     fetchInventory,
     fetchCategories,
     createCategory,
+    updateCategory,
+    deleteCategory,
     setFilter,
     resetFilters,
   };

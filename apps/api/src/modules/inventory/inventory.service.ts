@@ -38,7 +38,7 @@ export async function getInventory(filters: InventoryQueryInput) {
       orderBy: { name: "asc" },
       include: {
         category: { select: { id: true, name: true, icon: true, isComputer: true } },
-        components: { orderBy: { sortOrder: "asc" } },
+        software: true,
       },
     }),
     prisma.software.findMany({
