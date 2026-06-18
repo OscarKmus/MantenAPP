@@ -5,6 +5,8 @@ import { useClientStore } from "@/stores/clients";
 import { useEquipmentStore } from "@/stores/equipment";
 import EquipmentList from "@/components/equipment/EquipmentList.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
+import api from "@/lib/api";
+import type { Software, LicenseType } from "@mantenti/types";
 
 const route = useRoute();
 const router = useRouter();
@@ -13,6 +15,17 @@ const equipmentStore = useEquipmentStore();
 
 const activeTab = ref("resumen");
 const showEditModal = ref(false);
+const softwareList = ref<Software[]>([]);
+const softwareLoading = ref(false);
+const showSoftwareForm = ref(false);
+const editingSoftware = ref<Software | null>(null);
+const softwareForm = ref({
+  name: "",
+  licenseType: "OFFICE" as LicenseType,
+  equipmentId: null as string | null,
+  expiresAt: "",
+  notes: "",
+});
 
 const clientId = computed(() => route.params.id as string);
 const client = computed(() => clientStore.currentClient);
@@ -20,19 +33,36 @@ const client = computed(() => clientStore.currentClient);
 const tabs = [
   { id: "resumen", label: "Resumen" },
   { id: "equipos", label: "Equipos" },
+  { id: "software", label: "Software" },
   { id: "historial", label: "Historial", disabled: true },
 ];
 
 onMounted(async () => {
   await clientStore.fetchClient(clientId.value);
   await equipmentStore.fetchEquipment(clientId.value);
+  await fetchSoftware();
 });
 
 // Watch for route param changes
 watch(clientId, async (id) => {
   await clientStore.fetchClient(id);
   await equipmentStore.fetchEquipment(id);
+  await fetchSoftware();
 });
+
+async function fetchSoftware() {
+  softwareLoading.value = true;
+  try {
+    const { data } = await api.get<{ software: Software[] }>(
+      `/clients/${clientId.value}/software`
+    );
+    softwareList.value = data.software;
+  } catch {
+    softwareList.value = [];
+  } finally {
+    softwareLoading.value = false;
+  }
+}
 
 function handleUpdateClient(data: Record<string, unknown>) {
   clientStore.updateClient(clientId.value, data).then(() => {
@@ -83,6 +113,107 @@ async function handleDeleteEquipment(id: string) {
     const msg = e?.response?.data?.error || e?.message || "No se pudo eliminar el equipo";
     alert(`No se pudo eliminar el equipo:\n\n${msg}`);
   }
+}
+
+// Software CRUD
+function openSoftwareCreate() {
+  editingSoftware.value = null;
+  softwareForm.value = {
+    name: "",
+    licenseType: "OFFICE",
+    equipmentId: null,
+    expiresAt: "",
+    notes: "",
+  };
+  showSoftwareForm.value = true;
+}
+
+function openSoftwareEdit(sw: Software) {
+  editingSoftware.value = sw;
+  softwareForm.value = {
+    name: sw.name,
+    licenseType: sw.licenseType,
+    equipmentId: sw.equipmentId,
+    expiresAt: new Date(sw.expiresAt).toISOString().split("T")[0],
+    notes: sw.notes ?? "",
+  };
+  showSoftwareForm.value = true;
+}
+
+async function handleSoftwareSubmit() {
+  if (!softwareForm.value.name.trim() || !softwareForm.value.expiresAt) {
+    alert("Nombre y fecha de vencimiento son requeridos");
+    return;
+  }
+
+  const payload = {
+    name: softwareForm.value.name.trim(),
+    licenseType: softwareForm.value.licenseType,
+    clientId: clientId.value,
+    equipmentId: softwareForm.value.equipmentId || null,
+    expiresAt: new Date(softwareForm.value.expiresAt).toISOString(),
+    notes: softwareForm.value.notes.trim() || null,
+  };
+
+  try {
+    if (editingSoftware.value) {
+      await api.patch(`/software/${editingSoftware.value.id}`, payload);
+    } else {
+      await api.post("/software", payload);
+    }
+    showSoftwareForm.value = false;
+    await fetchSoftware();
+  } catch (e: any) {
+    alert(e?.response?.data?.error || "Error al guardar software");
+  }
+}
+
+async function handleSoftwareDelete(sw: Software) {
+  const typed = prompt(
+    `Vas a eliminar la licencia "${sw.name}".\n\n` +
+    `Escribí exactamente el nombre para confirmar:`
+  );
+  if (typed === sw.name) {
+    try {
+      await api.delete(`/software/${sw.id}`);
+      await fetchSoftware();
+    } catch (e: any) {
+      alert(e?.response?.data?.error || "Error al eliminar software");
+    }
+  } else if (typed !== null) {
+    alert("El nombre no coincide. No se eliminó nada.");
+  }
+}
+
+const LICENSE_LABELS: Record<LicenseType, string> = {
+  OFFICE: "Office",
+  NORTON: "Norton",
+  PDF: "PDF",
+  AUTOCAD: "AutoCAD",
+  ANTIVIRUS: "Antivirus",
+  OTHER: "Otro",
+};
+
+function getLicenseExpirationColor(expiresAt: string): string {
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysUntil < 0) return "bg-red-100 text-red-800";
+  if (daysUntil < 30) return "bg-red-100 text-red-800";
+  if (daysUntil < 90) return "bg-amber-100 text-amber-800";
+  return "bg-green-100 text-green-800";
+}
+
+function getLicenseExpirationText(expiresAt: string): string {
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysUntil < 0) return `Vencida hace ${Math.abs(daysUntil)} días`;
+  if (daysUntil === 0) return "Vence hoy";
+  if (daysUntil === 1) return "Vence mañana";
+  if (daysUntil < 30) return `Vence en ${daysUntil} días`;
+  if (daysUntil < 90) return `Vence en ${Math.floor(daysUntil / 30)} meses`;
+  return `Vence en ${Math.floor(daysUntil / 30)} meses`;
 }
 
 const nextMaintenanceDisplay = computed(() => {
@@ -295,6 +426,124 @@ const nextMaintenanceDisplay = computed(() => {
         />
       </div>
 
+      <!-- Tab: Software -->
+      <div v-if="activeTab === 'software'">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-slate-500">
+            {{ softwareList.length }} licencia{{ softwareList.length !== 1 ? "s" : "" }}
+          </p>
+          <button
+            class="inline-flex items-center gap-2 px-3.5 py-2 bg-primary-600 text-white text-sm font-medium
+                   rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            @click="openSoftwareCreate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar software
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="softwareLoading" class="space-y-3">
+          <div v-for="i in 3" :key="i" class="bg-white rounded-lg border border-slate-200 p-4 animate-pulse">
+            <div class="h-5 bg-slate-200 rounded w-1/3 mb-2" />
+            <div class="h-4 bg-slate-100 rounded w-1/2" />
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div
+          v-else-if="softwareList.length === 0"
+          class="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-12 text-center"
+        >
+          <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          <p class="text-slate-600 font-medium mb-1">Sin software registrado</p>
+          <p class="text-sm text-slate-500 mb-4">
+            Agrega licencias de software para este cliente.
+          </p>
+          <button
+            class="inline-flex items-center gap-2 px-3.5 py-2 bg-primary-600 text-white text-sm font-medium
+                   rounded-lg hover:bg-primary-700"
+            @click="openSoftwareCreate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar software
+          </button>
+        </div>
+
+        <!-- Software cards -->
+        <div v-else class="space-y-3">
+          <div
+            v-for="sw in softwareList"
+            :key="sw.id"
+            class="bg-white rounded-lg border border-slate-200 p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <h4 class="font-medium text-slate-800">{{ sw.name }}</h4>
+                  <span class="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                    {{ LICENSE_LABELS[sw.licenseType] || sw.licenseType }}
+                  </span>
+                  <span
+                    :class="[
+                      'text-xs font-medium px-2 py-0.5 rounded-full',
+                      getLicenseExpirationColor(sw.expiresAt),
+                    ]"
+                  >
+                    {{ getLicenseExpirationText(sw.expiresAt) }}
+                  </span>
+                </div>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span v-if="(sw as any).equipment?.name" class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {{ (sw as any).equipment.name }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Vence: {{ new Date(sw.expiresAt).toLocaleDateString("es") }}
+                  </span>
+                </div>
+                <p v-if="sw.notes" class="text-xs text-slate-400 mt-1 italic">{{ sw.notes }}</p>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  class="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50
+                         focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                  title="Editar"
+                  @click="openSoftwareEdit(sw)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50
+                         focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                  title="Eliminar"
+                  @click="handleSoftwareDelete(sw)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tab: Historial (placeholder) -->
       <div v-if="activeTab === 'historial'" class="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-12 text-center">
         <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,6 +569,127 @@ const nextMaintenanceDisplay = computed(() => {
             @submit="handleUpdateClient"
             @cancel="showEditModal = false"
           />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Software form modal -->
+    <Teleport to="body">
+      <div
+        v-if="showSoftwareForm"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
+        @click.self="showSoftwareForm = false"
+      >
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-6">
+          <h2 class="text-xl font-bold text-slate-800 mb-5">
+            {{ editingSoftware ? "Editar software" : "Agregar software" }}
+          </h2>
+          <form @submit.prevent="handleSoftwareSubmit" class="space-y-4">
+            <!-- Name -->
+            <div>
+              <label for="sw-name" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Nombre <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="sw-name"
+                v-model="softwareForm.name"
+                type="text"
+                class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="ej: Microsoft Office 365"
+              />
+            </div>
+
+            <!-- License Type -->
+            <div>
+              <label for="sw-type" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Tipo de licencia
+              </label>
+              <select
+                id="sw-type"
+                v-model="softwareForm.licenseType"
+                class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="OFFICE">Office</option>
+                <option value="NORTON">Norton</option>
+                <option value="PDF">PDF</option>
+                <option value="AUTOCAD">AutoCAD</option>
+                <option value="ANTIVIRUS">Antivirus</option>
+                <option value="OTHER">Otro</option>
+              </select>
+            </div>
+
+            <!-- Equipment (optional) -->
+            <div>
+              <label for="sw-equipment" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Equipo <span class="text-slate-400 text-xs">(opcional)</span>
+              </label>
+              <select
+                id="sw-equipment"
+                v-model="softwareForm.equipmentId"
+                class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option :value="null">Sin equipo asignado</option>
+                <option
+                  v-for="eq in equipmentStore.equipment"
+                  :key="eq.id"
+                  :value="eq.id"
+                >
+                  {{ eq.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Expires At -->
+            <div>
+              <label for="sw-expires" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Fecha de vencimiento <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="sw-expires"
+                v-model="softwareForm.expiresAt"
+                type="date"
+                class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label for="sw-notes" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Notas
+              </label>
+              <textarea
+                id="sw-notes"
+                v-model="softwareForm.notes"
+                rows="3"
+                class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Información adicional..."
+              />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-2">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700
+                       hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                @click="showSoftwareForm = false"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="flex-1 px-4 py-2.5 rounded-lg bg-primary-600 text-sm font-semibold text-white
+                       hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                {{ editingSoftware ? "Guardar cambios" : "Agregar software" }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </Teleport>
