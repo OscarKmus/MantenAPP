@@ -131,6 +131,15 @@ function handleBackToClient() {
   }
 }
 
+function handleBackToClientConfirm() {
+  const confirmed = confirm(
+    "¿Volver al cliente?\n\nTu progreso se guarda en este navegador. Podés retomar la mantención desde el detalle del cliente."
+  );
+  if (confirmed) {
+    handleBackToClient();
+  }
+}
+
 function handleGoToStep(step: number) {
   // Don't allow going forward past signature if not signed
   if (step > 1 && (!draftStore.technicianSignature || !draftStore.clientSignature) && step !== 3) {
@@ -166,10 +175,26 @@ function handleGoToStep(step: number) {
     <template v-else-if="draftStore.currentMaintenance">
       <!-- Header -->
       <div class="mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">Mantención en curso</h1>
-        <p class="text-sm text-slate-500 mt-1">
-          {{ items.length }} equipos · {{ draftStore.completedCount }} completados
-        </p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-800">Mantención en curso</h1>
+            <p class="text-sm text-slate-500 mt-1">
+              {{ items.length }} equipos · {{ draftStore.completedCount }} completados
+            </p>
+          </div>
+          <button
+            v-if="currentStep < 3"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+                   text-slate-500 hover:text-slate-700 hover:bg-slate-100
+                   focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+            @click="handleBackToClientConfirm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver a cliente
+          </button>
+        </div>
       </div>
 
       <!-- Step indicator -->
