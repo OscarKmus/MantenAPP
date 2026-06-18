@@ -9,12 +9,17 @@ const licenseTypeEnum = z.enum([
   "OTHER",
 ]);
 
+// Accept ISO 8601 datetime OR plain YYYY-MM-DD
+const flexibleDate = z.string().refine((v) => !isNaN(Date.parse(v)), {
+  message: "Invalid date (expected YYYY-MM-DD or ISO 8601)",
+});
+
 export const createSoftwareSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   licenseType: licenseTypeEnum,
   clientId: z.string().uuid("Invalid client ID"),
   equipmentId: z.string().uuid("Invalid equipment ID").nullable().optional(),
-  expiresAt: z.string().datetime("Invalid date format"),
+  expiresAt: flexibleDate,
   notes: z.string().max(500).optional(),
 });
 
@@ -22,7 +27,7 @@ export const updateSoftwareSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   licenseType: licenseTypeEnum.optional(),
   equipmentId: z.string().uuid("Invalid equipment ID").nullable().optional(),
-  expiresAt: z.string().datetime("Invalid date format").optional(),
+  expiresAt: flexibleDate.optional(),
   notes: z.string().max(500).nullable().optional(),
 });
 

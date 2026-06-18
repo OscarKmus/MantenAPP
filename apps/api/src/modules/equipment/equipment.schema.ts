@@ -18,6 +18,13 @@ const optionalString = (max: number, check?: (v: string) => boolean, errMsg?: st
   );
 };
 
+// Optional date string: accepts ISO datetime ("2027-12-31T00:00:00Z") or plain date ("2027-12-31").
+const optionalDateString = optionalString(50, (v) => {
+  // Try Date.parse
+  const t = Date.parse(v);
+  return !isNaN(t);
+}, "Invalid date (expected YYYY-MM-DD or ISO 8601)");
+
 const optionalIp = optionalString(
   45,
   (v) => /^(\d{1,3}\.){3}\d{1,3}$/.test(v),
@@ -40,7 +47,7 @@ export const createEquipmentSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
   hasLicense: z.boolean().optional(),
   licenseType: optionalString(50),
-  licenseExpiresAt: z.string().datetime().nullable().optional(),
+  licenseExpiresAt: optionalDateString,
   licenseNotes: optionalString(500),
 });
 
@@ -54,7 +61,7 @@ export const updateEquipmentSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
   hasLicense: z.boolean().optional(),
   licenseType: optionalString(50),
-  licenseExpiresAt: z.string().datetime().nullable().optional(),
+  licenseExpiresAt: optionalDateString,
   licenseNotes: optionalString(500),
 });
 
