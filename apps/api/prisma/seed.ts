@@ -1,8 +1,23 @@
 import { PrismaClient } from "@prisma/client";
+import argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // ─── Default dev user ────────────────────────────────────
+  // Username: admin · Password: admin123 — DEV ONLY. Change in production.
+  const defaultPasswordHash = await argon2.hash("admin123");
+  await prisma.user.upsert({
+    where: { username: "admin" },
+    update: {},
+    create: {
+      username: "admin",
+      passwordHash: defaultPasswordHash,
+      fullName: "Admin Técnico",
+    },
+  });
+
+  // ─── Default action types ────────────────────────────────
   const defaultActionTypes = [
     { name: "Mantención preventiva", color: "#3b82f6", icon: "shield-check", isDefault: true },
     { name: "Corrección", color: "#f59e0b", icon: "wrench", isDefault: true },

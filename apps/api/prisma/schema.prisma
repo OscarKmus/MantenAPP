@@ -104,7 +104,6 @@ model Maintenance {
   client      Client            @relation(fields: [clientId], references: [id])
   technician  User              @relation(fields: [technicianId], references: [id])
   items       MaintenanceItem[]
-  attachments Attachment[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([status])
@@ -131,7 +130,6 @@ model MaintenanceItem {
   maintenance Maintenance  @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
   equipment   Equipment    @relation(fields: [equipmentId], references: [id])
   actionType  ActionType?  @relation(fields: [actionTypeId], references: [id])
-  attachments Attachment[]
 
   @@unique([maintenanceId, equipmentId])
   @@map("maintenance_items")
