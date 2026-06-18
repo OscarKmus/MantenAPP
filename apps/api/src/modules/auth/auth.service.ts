@@ -13,14 +13,14 @@ interface TokenPayload {
 export function generateAccessToken(payload: TokenPayload): string {
   const env = getEnv();
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
-    expiresIn: env.JWT_ACCESS_EXPIRES_IN,
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN as any,
   });
 }
 
 export function generateRefreshToken(payload: TokenPayload): string {
   const env = getEnv();
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN,
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as any,
   });
 }
 

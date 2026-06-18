@@ -1,11 +1,10 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import { Router, type Request, type Response, type NextFunction, type IRouter } from "express";
 import { loginSchema } from "./auth.schema";
 import { login, getMe, refresh } from "./auth.service";
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
-import { getEnv } from "../../config/env";
 
-export const authRouter = Router();
+export const authRouter: IRouter = Router();
 
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
