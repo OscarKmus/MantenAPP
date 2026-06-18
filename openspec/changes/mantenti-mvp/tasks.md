@@ -154,27 +154,27 @@ Chain strategy: stacked-to-main
   - **Files**: `apps\api\src\services\storage\storage.provider.ts`, `apps\api\src\services\storage\local.provider.ts`
   - **Estimate**: 80 lines
 
-- [ ] 3.5 Create Pinia action-types store + maintenance-draft store
+- [x] 3.5 Create Pinia action-types store + maintenance-draft store
   - **Files**: `apps\web\src\stores\action-types.ts`, `apps\web\src\stores\maintenance-draft.ts`
   - **Estimate**: 60 lines
 
-- [ ] 3.6 Build `MaintenanceStartPage.vue`: equipment selector (manual checkboxes) + template selector
+- [x] 3.6 Build `MaintenanceStartPage.vue`: equipment selector (manual checkboxes) + template selector
   - **Files**: `apps\web\src\views\MaintenanceStartPage.vue`
   - **Estimate**: 120 lines
 
-- [ ] 3.7 Build `MaintenanceFlowPage.vue` + `StepIndicator.vue`: 4-step wizard (items → report → signature → done)
+- [x] 3.7 Build `MaintenanceFlowPage.vue` + `StepIndicator.vue`: 4-step wizard (items → report → signature → done)
   - **Files**: `apps\web\src\views\MaintenanceFlowPage.vue`, `apps\web\src\components\maintenance\StepIndicator.vue`
   - **Estimate**: 100 lines
 
-- [ ] 3.8 Build `ItemCard.vue`: per-item form with action type select (+ inline create), observations textarea
+- [x] 3.8 Build `ItemCard.vue`: per-item form with action type select (+ inline create), observations textarea
   - **Files**: `apps\web\src\components\maintenance\ItemCard.vue`, `apps\web\src\components\maintenance\ActionTypeSelect.vue`
   - **Estimate**: 100 lines
 
-- [ ] 3.9 Build `PhotoUpload.vue`: client-side resize (1920px, JPEG 0.85), progress bar, 10MB validation
+- [x] 3.9 Build `PhotoUpload.vue`: client-side resize (1920px, JPEG 0.85), progress bar, 10MB validation
   - **Files**: `apps\web\src\components\maintenance\PhotoUpload.vue`, `apps\web\src\composables\usePhotoResize.ts`
   - **Estimate**: 80 lines
 
-- [ ] 3.10 Add maintenance + attachment + action-type routes to Vue router
+- [x] 3.10 Add maintenance + attachment + action-type routes to Vue router
   - **Files**: `apps\web\src\router\index.ts` (modify)
   - **Estimate**: 20 lines
 
