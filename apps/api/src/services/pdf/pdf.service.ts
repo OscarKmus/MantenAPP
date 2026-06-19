@@ -63,14 +63,13 @@ function calculateDuration(createdAt: Date, closedAt: Date): string {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 }
 
-function getIdentifier(equipment: {
+function getIpMac(equipment: {
   ip: string | null;
   mac: string | null;
-  serial: string | null;
 }): string | null {
+  if (equipment.ip && equipment.mac) return `${equipment.ip} / ${equipment.mac}`;
   if (equipment.ip) return equipment.ip;
   if (equipment.mac) return equipment.mac;
-  if (equipment.serial) return equipment.serial;
   return null;
 }
 
@@ -135,7 +134,7 @@ export async function generateMaintenancePdf(
     return {
       equipmentName: item.equipment.name,
       categoryName: item.equipment.category?.name || null,
-      identifier: getIdentifier(item.equipment),
+      ipMac: getIpMac(item.equipment),
       actionTypeName: item.actionType?.name || null,
       actionTypeColor: item.actionType?.color || null,
       observations: item.observations,
@@ -238,8 +237,8 @@ export async function generateMaintenancePdf(
       .fillColor(TEXT_SECONDARY)
       .text("Reporte de Mantención", 50, currentY + 28);
 
-    // Blue line under header
-    currentY += 50;
+    // Blue line under header — gap de 25-30px desde fondo del subtítulo
+    currentY += 65;
     doc
       .moveTo(50, currentY)
       .lineTo(50 + pageWidth, currentY)
@@ -290,7 +289,7 @@ export async function generateMaintenancePdf(
       .fillColor(BRAND_COLOR)
       .text("Cliente", 50, currentY);
 
-    currentY += 8;
+    currentY += 22;
     doc
       .moveTo(50, currentY)
       .lineTo(50 + pageWidth, currentY)
@@ -395,7 +394,7 @@ export async function generateMaintenancePdf(
       .fillColor(BRAND_COLOR)
       .text("Equipos Revisados", 50, currentY);
 
-    currentY += 8;
+    currentY += 22;
     doc
       .moveTo(50, currentY)
       .lineTo(50 + pageWidth, currentY)
@@ -407,13 +406,12 @@ export async function generateMaintenancePdf(
 
     // Table header
     const colWidths = [
-      pageWidth * 0.2,  // Equipo
-      pageWidth * 0.12, // Categoría
-      pageWidth * 0.14, // IP/MAC/Serie
-      pageWidth * 0.14, // Acción
-      pageWidth * 0.24, // Observaciones
-      pageWidth * 0.08, // Fotos
-      pageWidth * 0.08, // ✓
+      pageWidth * 0.22, // Equipo
+      pageWidth * 0.13, // Categoría
+      pageWidth * 0.15, // IP / MAC
+      pageWidth * 0.15, // Acción
+      pageWidth * 0.25, // Observaciones
+      pageWidth * 0.10, // Revisado
     ];
     const colX = [50];
     for (let i = 1; i < colWidths.length; i++) {
@@ -426,11 +424,10 @@ export async function generateMaintenancePdf(
     const headerLabels = [
       "EQUIPO",
       "CATEGORÍA",
-      "IP/MAC/SERIE",
+      "IP / MAC",
       "ACCIÓN",
       "OBSERVACIONES",
-      "FOTOS",
-      "✓",
+      "REVISADO",
     ];
 
     headerLabels.forEach((label, i) => {
@@ -487,7 +484,7 @@ export async function generateMaintenancePdf(
         doc
           .fontSize(7)
           .fillColor(TEXT_SECONDARY)
-          .text(item.identifier || "—", colX[2] + 4, currentY + 8, {
+          .text(item.ipMac || "—", colX[2] + 4, currentY + 8, {
             width: colWidths[2] - 8,
           });
 
@@ -522,22 +519,27 @@ export async function generateMaintenancePdf(
             width: colWidths[4] - 8,
           });
 
-        // Photo count
-        doc
-          .fontSize(7)
-          .fillColor(TEXT_SECONDARY)
-          .text(
-            item.photoCount > 0 ? `${item.photoCount}` : "—",
-            colX[5] + 4,
-            currentY + 8
-          );
-
-        // Checkmark
+        // Revisado: checkmark (path) verde o cruz (path) roja
+        // Usamos paths en vez de Unicode porque Helvetica no soporta ✓/✗
+        const revCx = colX[5] + colWidths[5] / 2;
+        const revCy = currentY + rowHeight / 2;
         if (item.completed) {
           doc
-            .fontSize(10)
-            .fillColor(SUCCESS_COLOR)
-            .text("✓", colX[6] + 4, currentY + 6);
+            .moveTo(revCx - 5, revCy)
+            .lineTo(revCx - 1, revCy + 5)
+            .lineTo(revCx + 6, revCy - 4)
+            .strokeColor(SUCCESS_COLOR)
+            .lineWidth(2.5)
+            .stroke();
+        } else {
+          doc
+            .moveTo(revCx - 4, revCy - 4)
+            .lineTo(revCx + 4, revCy + 4)
+            .moveTo(revCx + 4, revCy - 4)
+            .lineTo(revCx - 4, revCy + 4)
+            .strokeColor("#dc2626")
+            .lineWidth(2.5)
+            .stroke();
         }
 
         // Bottom border
@@ -568,7 +570,7 @@ export async function generateMaintenancePdf(
         .fillColor(BRAND_COLOR)
         .text("Fotografías", 50, currentY);
 
-      currentY += 8;
+      currentY += 22;
       doc
         .moveTo(50, currentY)
         .lineTo(50 + pageWidth, currentY)
@@ -651,7 +653,7 @@ export async function generateMaintenancePdf(
         .fillColor(BRAND_COLOR)
         .text("Observaciones Generales", 50, currentY);
 
-      currentY += 8;
+      currentY += 22;
       doc
         .moveTo(50, currentY)
         .lineTo(50 + pageWidth, currentY)
@@ -692,7 +694,7 @@ export async function generateMaintenancePdf(
         .fillColor(BRAND_COLOR)
         .text("Firmas", 50, currentY);
 
-      currentY += 8;
+      currentY += 22;
       doc
         .moveTo(50, currentY)
         .lineTo(50 + pageWidth, currentY)
@@ -783,46 +785,6 @@ export async function generateMaintenancePdf(
           width: sigWidth,
           align: "center",
         });
-    }
-
-    // ─── Footer (on every page) ─────────────────────
-    const { start: pageStart, count: pageCount } = doc.bufferedPageRange();
-    for (let i = 0; i < pageCount; i++) {
-      doc.switchToPage(pageStart + i);
-
-      const footerY = doc.page.height - 40;
-
-      doc
-        .moveTo(50, footerY)
-        .lineTo(50 + pageWidth, footerY)
-        .strokeColor(BORDER_COLOR)
-        .lineWidth(0.5)
-        .stroke();
-
-      doc
-        .fontSize(7)
-        .font("Helvetica")
-        .fillColor(TEXT_MUTED)
-        .text(
-          `${env.COMPANY_NAME} — Reporte de Mantención`,
-          50,
-          footerY + 8,
-          { width: pageWidth / 3 }
-        );
-
-      doc.text(
-        `Página ${i + 1} de ${pageCount}`,
-        50 + pageWidth / 3,
-        footerY + 8,
-        { width: pageWidth / 3, align: "center" }
-      );
-
-      doc.text(
-        `Generado: ${formatDate(new Date().toISOString())}`,
-        50 + (pageWidth * 2) / 3,
-        footerY + 8,
-        { width: pageWidth / 3, align: "right" }
-      );
     }
 
     doc.end();
