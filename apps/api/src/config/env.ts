@@ -13,6 +13,7 @@ const envSchema = z.object({
   VAPID_SUBJECT: z.string().default("mailto:admin@mantenti.local"),
   COMPANY_NAME: z.string().default("Mantenti"),
   COMPANY_LOGO_URL: z.string().optional(),
+  ADMIN_PASSWORD: z.string().min(12),
 });
 
 export type Env = z.infer<typeof envSchema>;
