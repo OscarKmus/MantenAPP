@@ -1,8 +1,9 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { createEquipmentSchema, updateEquipmentSchema, equipmentQuerySchema } from "./equipment.schema";
-import { listEquipment, getEquipment, createEquipment, updateEquipment, deleteEquipment } from "./equipment.service";
+import { createEquipmentSchema, updateEquipmentSchema, equipmentQuerySchema, bulkDeleteSchema, cascadePreviewSchema } from "./equipment.schema";
+import { listEquipment, getEquipment, createEquipment, updateEquipment, deleteEquipment, cascadePreviewEquipment, bulkDeleteEquipment } from "./equipment.service";
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
+import { requireAdminToken } from "../admin/admin.middleware";
 import type { EquipmentStatus } from "@mantenti/types";
 
 export const equipmentRouter: IRouter = Router();
@@ -45,6 +46,35 @@ equipmentRouter.post(
     }
   }
 );
+
+// POST /api/equipment/cascade-preview — preview cascade counts (user JWT only, no admin token)
+equipmentRouter.post("/equipment/cascade-preview", validate(cascadePreviewSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const counts = await cascadePreviewEquipment(ids);
+    res.json(counts);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/equipment/bulk-delete — bulk delete with admin token (all-or-nothing)
+equipmentRouter.post("/equipment/bulk-delete", requireAdminToken, validate(bulkDeleteSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const result = await bulkDeleteEquipment(ids);
+
+    if (result.skipped && result.skipped.length > 0) {
+      // Some ids didn't exist — return 207 with partial result
+      res.status(207).json(result);
+      return;
+    }
+
+    res.json({ deleted: result.deleted, ids: result.ids });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET /api/equipment/:id
 equipmentRouter.get("/equipment/:id", async (req: Request, res: Response, next: NextFunction) => {

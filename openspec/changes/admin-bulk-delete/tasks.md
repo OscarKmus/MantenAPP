@@ -75,7 +75,7 @@ Chain strategy: pending
 
 ### Phase 2: Backend Bulk Delete Endpoints
 
-- [ ] 2.1 **Add bulk delete + cascade preview to clients module**
+- [x] 2.1 **Add bulk delete + cascade preview to clients module**
   - Files: `apps/api/src/modules/clients/clients.schema.ts` (modify), `apps/api/src/modules/clients/clients.service.ts` (modify), `apps/api/src/modules/clients/clients.controller.ts` (modify)
   - Schema: `bulkDeleteSchema` (`{ ids: string[] }` min 1 max 100), `cascadePreviewSchema`
   - Service: `bulkDeleteClients(ids)` — pre-validate existence, collect attachments, `$transaction` (delete attachments + clients), best-effort file cleanup. `cascadePreviewClients(ids)` — 4 count queries (clients, equipment, maintenanceItems, attachments)
@@ -83,7 +83,7 @@ Chain strategy: pending
   - Done when: bulk delete with 3 valid ids returns 200; cascade preview returns counts; batch >100 returns 400
   - Lines: 90
 
-- [ ] 2.2 **Add bulk delete + cascade preview to equipment module**
+- [x] 2.2 **Add bulk delete + cascade preview to equipment module**
   - Files: `apps/api/src/modules/equipment/equipment.schema.ts` (modify), `apps/api/src/modules/equipment/equipment.service.ts` (modify), `apps/api/src/modules/equipment/equipment.controller.ts` (modify)
   - Schema: `bulkDeleteSchema`, `cascadePreviewSchema`
   - Service: `bulkDeleteEquipment(ids)` — pre-validate, `$transaction`, file cleanup. `cascadePreviewEquipment(ids)` — 3 count queries (equipment, maintenanceItems, attachments)
