@@ -1,9 +1,10 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { createClientSchema, updateClientSchema, clientQuerySchema } from "./clients.schema";
-import { listClients, getClient, createClient, updateClient, deleteClient } from "./clients.service";
+import { createClientSchema, updateClientSchema, clientQuerySchema, bulkDeleteSchema, cascadePreviewSchema } from "./clients.schema";
+import { listClients, getClient, createClient, updateClient, deleteClient, cascadePreviewClients, bulkDeleteClients } from "./clients.service";
 import { listClientMaintenances } from "../maintenances/maintenances.service";
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
+import { requireAdminToken } from "../admin/admin.middleware";
 
 export const clientsRouter: IRouter = Router();
 
@@ -31,6 +32,35 @@ clientsRouter.post("/", validate(createClientSchema), async (req: Request, res: 
   try {
     const client = await createClient(req.body);
     res.status(201).json({ client });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/clients/cascade-preview — preview cascade counts (user JWT only, no admin token)
+clientsRouter.post("/cascade-preview", validate(cascadePreviewSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const counts = await cascadePreviewClients(ids);
+    res.json(counts);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/clients/bulk-delete — bulk delete with admin token (all-or-nothing)
+clientsRouter.post("/bulk-delete", requireAdminToken, validate(bulkDeleteSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const result = await bulkDeleteClients(ids);
+
+    if (result.skipped && result.skipped.length > 0) {
+      // Some ids didn't exist — return 207 with partial result
+      res.status(207).json(result);
+      return;
+    }
+
+    res.json({ deleted: result.deleted, ids: result.ids });
   } catch (error) {
     next(error);
   }
