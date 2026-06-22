@@ -186,7 +186,7 @@ Chain strategy: pending
 
 ### Phase 5: Verification + Documentation
 
-- [ ] 5.1 **Update `.env.example` with admin password docs + verify server boot**
+- [x] 5.1 **Update `.env.example` with admin password docs + verify server boot**
   - Files: `.env.example` (modify — add comment explaining min 12 chars)
   - Run server boot test: set `ADMIN_PASSWORD=short`, confirm exit; set `ADMIN_PASSWORD=validpassword12`, confirm start
   - Done when: `.env.example` documents admin password requirement, boot guard works
