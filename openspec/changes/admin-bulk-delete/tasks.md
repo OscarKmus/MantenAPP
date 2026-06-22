@@ -192,7 +192,7 @@ Chain strategy: pending
   - Done when: `.env.example` documents admin password requirement, boot guard works
   - Lines: 5
 
-- [ ] 5.2 **Manual verification run-through**
+- [x] 5.2 **Manual verification run-through**
   - Files: none (documentation only)
   - Verify: POST /api/admin/verify correct/wrong password, rate limit, token expiry, bulk delete clients/equipment, cascade preview counts, single delete unchanged
   - Document results in `openspec/changes/admin-bulk-delete/verify-report.md`
