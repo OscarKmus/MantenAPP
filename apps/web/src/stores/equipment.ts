@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import api from "@/lib/api";
+import { bulkDeleteEquipment as apiBulkDeleteEquipment } from "@/lib/api/admin";
 import type { Equipment, EquipmentStatus } from "@mantenti/types";
 
 export const useEquipmentStore = defineStore("equipment", () => {
@@ -80,6 +81,20 @@ export const useEquipmentStore = defineStore("equipment", () => {
     }
   }
 
+  async function bulkDeleteEquipment(ids: string[], adminToken: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiBulkDeleteEquipment(ids, adminToken);
+      equipment.value = equipment.value.filter((e) => !ids.includes(e.id));
+    } catch (err: any) {
+      error.value = err.response?.data?.error || "Error deleting equipment";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     equipment,
     loading,
@@ -89,5 +104,6 @@ export const useEquipmentStore = defineStore("equipment", () => {
     createEquipment,
     updateEquipment,
     deleteEquipment,
+    bulkDeleteEquipment,
   };
 });
