@@ -31,6 +31,10 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ─── Routes ─────────────────────────────────────────────
+// adminRouter must be mounted BEFORE the catch-all `/api` routers (equipmentRouter
+// and others apply `authMiddleware` to everything entering them, which would
+// intercept /api/admin/verify and block the public password-check endpoint).
+app.use("/api/admin", adminRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api", equipmentRouter);
@@ -41,7 +45,6 @@ app.use("/api", templatesRouter);
 app.use("/api/equipment-categories", equipmentCategoriesRouter);
 app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
-app.use("/api/admin", adminRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
