@@ -142,7 +142,7 @@ Chain strategy: pending
 
 ### Phase 4: Frontend List Page Integration
 
-- [ ] 4.1 **Create `api/admin.ts` client module**
+- [x] 4.1 **Create `api/admin.ts` client module**
   - Files: `apps/web/src/lib/api/admin.ts` (new)
   - `verifyAdminPassword(password: string)` → `POST /api/admin/verify` → `{ ok, token, expiresIn }`
   - `bulkDeleteClients(ids: string[], adminToken: string)` → `POST /api/clients/bulk-delete` with Bearer header
@@ -151,14 +151,14 @@ Chain strategy: pending
   - Done when: functions call correct endpoints with correct auth headers
   - Lines: 45
 
-- [ ] 4.2 **Add bulk delete actions to Pinia stores**
+- [x] 4.2 **Add bulk delete actions to Pinia stores**
   - Files: `apps/web/src/stores/clients.ts` (modify), `apps/web/src/stores/equipment.ts` (modify)
   - `bulkDeleteClients(ids, adminToken)`: call API, remove deleted ids from `clients` ref
   - `bulkDeleteEquipment(ids, adminToken)`: call API, remove deleted ids from `equipment` ref
   - Done when: store actions remove deleted items from reactive state
   - Lines: 30
 
-- [ ] 4.3 **Modify `ClientCard.vue` — checkbox support**
+- [x] 4.3 **Modify `ClientCard.vue` — checkbox support**
   - Files: `apps/web/src/components/clients/ClientCard.vue` (modify)
   - Props: `selected?: boolean`, emits: `toggle: [id: string]`
   - Render checkbox in card header (left of name), hidden when `selected` is undefined
@@ -166,7 +166,7 @@ Chain strategy: pending
   - Done when: checkbox visible, toggle emits id, card click still navigates
   - Lines: 25
 
-- [ ] 4.4 **Modify `ClientListPage.vue` — bulk delete integration**
+- [x] 4.4 **Modify `ClientListPage.vue` — bulk delete integration**
   - Files: `apps/web/src/views/ClientListPage.vue` (modify)
   - Add `useMultiSelect`, `useToast`, `AdminPasswordModal`, `CascadePreviewModal`, `BulkActionBar`
   - Select-all checkbox in header, per-card checkboxes
@@ -175,7 +175,7 @@ Chain strategy: pending
   - Done when: multi-select works, full delete flow completes, toast shows success, `alert()` not used
   - Lines: 100
 
-- [ ] 4.5 **Modify `EquipmentList.vue` — bulk delete integration**
+- [x] 4.5 **Modify `EquipmentList.vue` — bulk delete integration**
   - Files: `apps/web/src/components/equipment/EquipmentList.vue` (modify)
   - Add `useMultiSelect`, `useToast`, `AdminPasswordModal`, `CascadePreviewModal`, `BulkActionBar`
   - Select-all checkbox in toolbar, per-row checkboxes

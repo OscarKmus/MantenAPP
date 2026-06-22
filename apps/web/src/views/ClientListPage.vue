@@ -22,7 +22,7 @@ const clientsRef = computed(() => store.filteredClients);
 const multiSelect = useMultiSelect(clientsRef);
 const showCascadePreview = ref(false);
 const showAdminPassword = ref(false);
-const cascadeCounts = ref({ clients: 0, equipment: 0, maintenanceItems: 0, attachments: 0 });
+const cascadeCounts = ref<{ clients?: number; equipment: number; maintenanceItems: number; attachments: number }>({ equipment: 0, maintenanceItems: 0, attachments: 0 });
 const cascadeLoading = ref(false);
 const bulkDeleting = ref(false);
 
