@@ -93,7 +93,7 @@ Chain strategy: pending
 
 ### Phase 3: Frontend Primitives
 
-- [ ] 3.1 **Create Toast system — composable + provider**
+- [x] 3.1 **Create Toast system — composable + provider**
   - Files: `apps/web/src/composables/useToast.ts` (new), `apps/web/src/components/layout/ToastProvider.vue` (new)
   - Composable: `useToast()` → `{ success(msg), error(msg), info(msg) }` via inject/provide
   - Provider: renders toast stack at bottom-right, auto-dismiss after 4s, manual dismiss
@@ -101,14 +101,14 @@ Chain strategy: pending
   - Done when: `ToastProvider` renders, `useToast().success("test")` shows toast that auto-dismisses
   - Lines: 80
 
-- [ ] 3.2 **Create `useMultiSelect.ts` composable**
+- [x] 3.2 **Create `useMultiSelect.ts` composable**
   - Files: `apps/web/src/composables/useMultiSelect.ts` (new)
   - `useMultiSelect<T extends { id: string }>(items: Ref<T[]>)` → `{ selectedIds, someSelected, isAllSelected, toggleOne(id), toggleAll(), clear() }`
   - `selectedIds` is a `Set<string>` wrapped in `ref`; `someSelected`/`isAllSelected` are computed
   - Done when: toggleOne adds/removes id; toggleAll selects/deselects all; clear empties selection
   - Lines: 45
 
-- [ ] 3.3 **Create `AdminPasswordModal.vue`**
+- [x] 3.3 **Create `AdminPasswordModal.vue`**
   - Files: `apps/web/src/components/AdminPasswordModal.vue` (new)
   - Teleport modal: password input + "Cancelar" + "Confirmar" buttons
   - Emits: `success(token: string)`, `cancel`
@@ -117,7 +117,7 @@ Chain strategy: pending
   - Done when: correct password emits `success(token)`, wrong shows error, cancel emits `cancel`
   - Lines: 70
 
-- [ ] 3.4 **Create `CascadePreviewModal.vue`**
+- [x] 3.4 **Create `CascadePreviewModal.vue`**
   - Files: `apps/web/src/components/CascadePreviewModal.vue` (new)
   - Teleport modal: shows entity breakdown (e.g., "3 clientes, 5 equipos, 12 mantenciones, 8 adjuntos serán eliminados")
   - Props: `counts: { clients?, equipment, maintenanceItems, attachments }` + `loading`
@@ -125,7 +125,7 @@ Chain strategy: pending
   - Done when: modal shows counts, confirm/cancel buttons work
   - Lines: 60
 
-- [ ] 3.5 **Create `BulkActionBar.vue`**
+- [x] 3.5 **Create `BulkActionBar.vue`**
   - Files: `apps/web/src/components/BulkActionBar.vue` (new)
   - Floating bottom bar: "N seleccionados" label + "Borrar N clientes/equipos" red button
   - Props: `count: number`, `label: string` ("clientes" or "equipos")
@@ -134,7 +134,7 @@ Chain strategy: pending
   - Done when: bar appears when count > 0, delete button emits event
   - Lines: 45
 
-- [ ] 3.6 **Wire `ToastProvider` into `App.vue`**
+- [x] 3.6 **Wire `ToastProvider` into `App.vue`**
   - Files: `apps/web/src/App.vue` (modify)
   - Import `ToastProvider`, wrap app content: `<ToastProvider>...</ToastProvider>`
   - Done when: app renders with toast context available to all components
