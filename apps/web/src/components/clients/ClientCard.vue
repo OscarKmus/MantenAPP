@@ -8,11 +8,13 @@ interface ClientWithMeta extends Client {
 
 const props = defineProps<{
   client: ClientWithMeta;
+  selected?: boolean;
 }>();
 
 const emit = defineEmits<{
   click: [];
   delete: [id: string];
+  toggle: [id: string];
 }>();
 
 const menuOpen = ref(false);
@@ -93,8 +95,21 @@ const formattedDate = computed(() => {
            active:scale-[0.98] cursor-pointer"
     @click="handleCardClick"
   >
-    <!-- Header: name + badge + menu -->
+    <!-- Header: checkbox + name + badge + menu -->
     <div class="flex items-start justify-between gap-3 mb-3">
+      <label
+        v-if="selected !== undefined"
+        class="flex items-center shrink-0 mt-0.5"
+        @click.stop
+      >
+        <input
+          type="checkbox"
+          :checked="selected"
+          class="w-4 h-4 rounded border-slate-300 text-primary-600
+                 focus:ring-primary-500 cursor-pointer"
+          @change="emit('toggle', client.id)"
+        />
+      </label>
       <h3 class="font-semibold text-slate-800 text-base leading-tight truncate flex-1 min-w-0">
         {{ client.name }}
       </h3>
