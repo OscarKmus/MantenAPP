@@ -90,7 +90,7 @@ function loadPage(pageNum: number) {
         :key="n.id"
         class="w-full text-left bg-white rounded-lg border border-slate-200 p-4
                hover:border-slate-300 hover:shadow-sm transition-all"
-        :class="{ "border-l-4 border-l-primary-500": !n.isRead }"
+        :class="{ 'border-l-4 border-l-primary-500': !n.isRead }"
         @click="handleClick(n)"
       >
         <div class="flex items-start justify-between gap-3">
