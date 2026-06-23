@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
-import type { Equipment, EquipmentStatus, EquipmentCategory, Software } from "@mantenti/types";
+import type { Equipment, EquipmentStatus, EquipmentCategory } from "@mantenti/types";
 import { useInventoryStore } from "@/stores/inventory";
-import api from "@/lib/api";
 
 const STATUS_OPTIONS: { value: EquipmentStatus; label: string }[] = [
   { value: "ACTIVE", label: "Activo" },
@@ -30,7 +29,6 @@ const newCategoryName = ref("");
 const newCategoryIsComputer = ref(false);
 const editingCategory = ref<EquipmentCategory | null>(null);
 const categoryManagerForm = ref({ name: "", isComputer: false });
-const clientSoftware = ref<Software[]>([]);
 
 const form = ref({
   name: "",
@@ -40,7 +38,6 @@ const form = ref({
   assignedTo: "",
   status: "ACTIVE" as EquipmentStatus,
   categoryId: null as string | null,
-  softwareId: null as string | null,
   processor: "",
   ram: "",
   disk: "",
@@ -66,29 +63,10 @@ watch(
         assignedTo: eq.assignedTo ?? "",
         status: eq.status,
         categoryId: eq.categoryId ?? null,
-        softwareId: eq.softwareId ?? null,
         processor: eq.processor ?? "",
         ram: eq.ram ?? "",
         disk: eq.disk ?? "",
       };
-    }
-  },
-  { immediate: true }
-);
-
-// Load client software when clientId changes
-watch(
-  () => props.clientId,
-  async (cid) => {
-    if (cid) {
-      try {
-        const { data } = await api.get<{ software: Software[] }>(`/clients/${cid}/software`);
-        clientSoftware.value = data.software;
-      } catch {
-        clientSoftware.value = [];
-      }
-    } else {
-      clientSoftware.value = [];
     }
   },
   { immediate: true }
@@ -104,25 +82,6 @@ const selectedCategory = computed(() => {
 const showComponentsTab = computed(() => {
   return selectedCategory.value?.isComputer ?? false;
 });
-
-function getSoftwareExpirationColor(expiresAt: string): string {
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (daysUntil < 30) return "text-red-600";
-  if (daysUntil < 90) return "text-amber-600";
-  return "text-green-600";
-}
-
-function getSoftwareExpirationLabel(expiresAt: string): string {
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (daysUntil < 0) return "vencida";
-  if (daysUntil < 30) return `vence en ${daysUntil}d`;
-  if (daysUntil < 90) return `vence en ${Math.floor(daysUntil / 30)}m`;
-  return `vence en ${Math.floor(daysUntil / 30)}m`;
-}
 
 function validate(): boolean {
   errors.value = {};
@@ -161,9 +120,6 @@ function handleSubmit() {
 
   // Category
   data.categoryId = form.value.categoryId || null;
-
-  // Software
-  data.softwareId = form.value.softwareId || null;
 
   // Components (simple strings)
   const processor = form.value.processor.trim();
@@ -417,32 +373,6 @@ function openAddComponent() {
           </div>
         </div>
       </fieldset>
-
-      <!-- Software instalado -->
-      <div>
-        <label for="eq-software" class="block text-sm font-medium text-slate-700 mb-1.5">
-          Software instalado
-          <span class="text-slate-400 font-normal">(opcional)</span>
-        </label>
-        <select
-          id="eq-software"
-          v-model="form.softwareId"
-          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        >
-          <option :value="null">Sin software asignado</option>
-          <option
-            v-for="sw in clientSoftware"
-            :key="sw.id"
-            :value="sw.id"
-          >
-            {{ sw.name }} — {{ getSoftwareExpirationLabel(sw.expiresAt) }}
-          </option>
-        </select>
-        <p v-if="clientSoftware.length === 0 && clientId" class="mt-1.5 text-xs text-slate-500">
-          Este cliente no tiene software registrado. Creá uno desde la pestaña Software del cliente.
-        </p>
-      </div>
     </div>
 
     <!-- Tab: Componentes -->
