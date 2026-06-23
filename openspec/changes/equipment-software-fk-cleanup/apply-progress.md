@@ -6,9 +6,9 @@
 |-------|-------|
 | Change | equipment-software-fk-cleanup |
 | Branch | feat/equipment-software-fk-cleanup |
-| Total tasks | 15 |
-| Completed | 15 |
-| Current phase | Phase 6: Cleanup (complete) |
+| Total tasks | 18 (15 original + 3 from Phase 7 bugfix) |
+| Completed | 18 |
+| Current phase | Phase 7: UI refresh bugfix (complete) |
 | Mode | Standard (no test runner) |
 
 ## Task Progress
@@ -46,6 +46,12 @@
 - [x] 6.3 Updated `ClientDetailPage.vue` to use `GET /software?clientId=xxx` instead of dead endpoint — commit `ecabd14`
 - [x] 6.4 `npx vue-tsc --noEmit` ✅ and `pnpm --filter api build` ✅ — zero errors
 
+### Phase 7: Fix UI Refresh on Software Create/Delete (bugfix added pre-verify)
+
+- [x] 7.1 Add `await equipmentStore.fetchEquipment(clientId.value)` after `await fetchSoftware()` in `handleSoftwareSubmit` (covers both POST and PATCH) — commit `230fbb5`
+- [x] 7.2 Add the same refetch in `handleSoftwareDelete` — commit `230fbb5`
+- [x] 7.3 `npx vue-tsc --noEmit` ✅ — zero errors
+
 ## Files Changed
 
 | File | Action | What Was Done |
@@ -62,7 +68,7 @@
 | `apps/web/src/components/equipment/EquipmentForm.vue` | Modified | Removed dropdown, refs, watchers, helpers, imports (71 lines deleted) |
 | `apps/api/src/modules/software/software.controller.ts` | Modified | Removed dead `GET /clients/:clientId/software` route |
 | `apps/api/src/modules/software/software.service.ts` | Modified | Removed `listSoftwareByClient` function |
-| `apps/web/src/views/ClientDetailPage.vue` | Modified | Updated to use `GET /software?clientId=xxx` |
+| `apps/web/src/views/ClientDetailPage.vue` | Modified | Updated to use `GET /software?clientId=xxx`; added `equipmentStore.fetchEquipment` refetch after software create/edit/delete (Phase 7) |
 
 ## Commits
 
@@ -74,12 +80,15 @@
 | 4 | `ecb5bb3` | refactor(web): render softwareLicenses array in equipment list and detail |
 | 5 | `db8ee3e` | refactor(web): remove software dropdown from equipment form |
 | 6 | `ecabd14` | chore(api): remove dead GET /clients/:clientId/software endpoint |
+| 7 | `1d990a8` | docs(openspec): add Phase 7 UI refresh tasks to tasks.md |
+| 8 | `230fbb5` | fix(web): refresh equipment cards after software create/delete |
 
 ## Risks / Notes for Next Phase
 
 - **Migration drift**: `prisma migrate dev` failed due to DB drift (existing DB has columns from manual changes). Migration was created manually. Verify it applies cleanly with `prisma migrate deploy` on the target database.
 - **Data migration safety**: The SQL loop uses `AND equipment_id IS NULL` guard — if software is already assigned to different equipment, it skips with `RAISE NOTICE`. No data loss.
 - **ClientDetailPage.vue**: Was calling the dead endpoint; updated to use `GET /software?clientId=xxx`. This was not in the original task list but was necessary to avoid a broken page.
+- **Phase 7 (UI refresh bugfix)**: Discovered during user review pre-verify — creating/deleting software only updated the SOFTWARE tab because `equipmentStore.equipment[*].softwareLicenses` was a stale snapshot. Fixed by refetching the equipment store after every software mutation in `ClientDetailPage.vue`. This was the latent root cause of the user-reported "have to refresh the page" symptom.
 - **Breaking API change**: `software` → `softwareLicenses` array is a breaking change. All consumers updated atomically in this PR.
 
 ## Next Step
