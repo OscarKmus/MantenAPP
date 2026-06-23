@@ -77,7 +77,6 @@ export interface UpdateEquipmentRequest {
   assignedTo?: string;
   status?: "ACTIVE" | "INACTIVE" | "UNDER_MAINTENANCE" | "DECOMMISSIONED";
   categoryId?: string | null;
-  softwareId?: string | null;
   processor?: string | null;
   ram?: string | null;
   disk?: string | null;

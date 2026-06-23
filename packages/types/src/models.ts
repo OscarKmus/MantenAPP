@@ -47,7 +47,6 @@ export interface Equipment {
   id: string;
   clientId: string;
   categoryId: string | null;
-  softwareId: string | null;
   name: string;
   ip: string | null;
   mac: string | null;
@@ -60,7 +59,7 @@ export interface Equipment {
   createdAt: string;
   updatedAt: string;
   category?: EquipmentCategory | null;
-  software?: Software | null;
+  softwareLicenses?: Software[];
 }
 
 export interface ActionType {
