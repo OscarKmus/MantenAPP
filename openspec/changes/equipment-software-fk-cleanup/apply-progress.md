@@ -8,7 +8,8 @@
 | Branch | feat/equipment-software-fk-cleanup |
 | Total tasks | 18 (15 original + 3 from Phase 7 bugfix) |
 | Completed | 18 |
-| Current phase | Phase 7: UI refresh bugfix (complete) |
+| Post-verify follow-up | Phase 8: Resolved W1 + S1 + S2 from verify-report |
+| Current phase | Phase 8: Post-verify follow-up (complete) |
 | Mode | Standard (no test runner) |
 
 ## Task Progress
@@ -52,6 +53,15 @@
 - [x] 7.2 Add the same refetch in `handleSoftwareDelete` — commit `230fbb5`
 - [x] 7.3 `npx vue-tsc --noEmit` ✅ — zero errors
 
+### Phase 8: Post-Verify Follow-up (resolved W1 + S1 + S2)
+
+> **Discovered in sdd-verify** (initial verdict: PASS WITH WARNINGS). User chose option C: resolve W1 and apply both suggestions in this same change.
+
+- [x] 8.1 W1 — `equipment.schema.ts`: add `.strict()` to `createEquipmentSchema` and `updateEquipmentSchema` so unknown fields (notably `softwareId`) return 400 instead of being silently stripped — commit `43cb0dd`
+- [x] 8.2 S2 — same `.strict()` treatment applied to all other input Zod schemas: `clients`, `software`, `maintenances`, `templates`, `action-types`, `auth`, `equipment-categories` — commit `43cb0dd`
+- [x] 8.3 S1 — `apps/api/package.json`: build script now runs `prisma generate && tsc` so the Prisma client is always in sync with `schema.prisma` at build time — commit `34b991e`
+- [x] 8.4 Verify report written and committed — `verify-report.md` (verdict: PASS WITH WARNINGS at the time; all warnings now resolved in Phase 8) — commit `e3b08d1`
+
 ## Files Changed
 
 | File | Action | What Was Done |
@@ -82,6 +92,9 @@
 | 6 | `ecabd14` | chore(api): remove dead GET /clients/:clientId/software endpoint |
 | 7 | `1d990a8` | docs(openspec): add Phase 7 UI refresh tasks to tasks.md |
 | 8 | `230fbb5` | fix(web): refresh equipment cards after software create/delete |
+| 9 | `43cb0dd` | refactor(api): reject unknown fields in Zod input schemas |
+| 10 | `34b991e` | chore(api): regenerate prisma client during build |
+| 11 | `e3b08d1` | docs(openspec): add verify-report for equipment-software-fk-cleanup |
 
 ## Risks / Notes for Next Phase
 
@@ -89,8 +102,9 @@
 - **Data migration safety**: The SQL loop uses `AND equipment_id IS NULL` guard — if software is already assigned to different equipment, it skips with `RAISE NOTICE`. No data loss.
 - **ClientDetailPage.vue**: Was calling the dead endpoint; updated to use `GET /software?clientId=xxx`. This was not in the original task list but was necessary to avoid a broken page.
 - **Phase 7 (UI refresh bugfix)**: Discovered during user review pre-verify — creating/deleting software only updated the SOFTWARE tab because `equipmentStore.equipment[*].softwareLicenses` was a stale snapshot. Fixed by refetching the equipment store after every software mutation in `ClientDetailPage.vue`. This was the latent root cause of the user-reported "have to refresh the page" symptom.
+- **Phase 8 (post-verify follow-up)**: sdd-verify reported W1 (Zod schemas don't reject `softwareId`, spec compliance gap) and 2 suggestions (S1: `prisma generate` in build; S2: `.strict()` on all input Zod schemas). All three resolved in this same change for a clean single-PR. With W1 fixed, sending `softwareId` in a POST/PATCH to `/clients/:id/equipment` now correctly returns 400.
 - **Breaking API change**: `software` → `softwareLicenses` array is a breaking change. All consumers updated atomically in this PR.
 
 ## Next Step
 
-Recommended: `sdd-verify` — run typechecks, grep verification, and manual smoke test.
+Recommended: `sdd-archive` — sync delta specs to canonical `openspec/specs/{capability}/spec.md` and close the change. All warnings resolved; ready to merge.
