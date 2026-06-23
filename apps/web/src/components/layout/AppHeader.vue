@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
+import NotificationBell from "./NotificationBell.vue";
 
 const auth = useAuthStore();
 
@@ -34,6 +35,9 @@ defineEmits<{
 
     <!-- Spacer -->
     <div class="flex-1" />
+
+    <!-- Notifications -->
+    <NotificationBell v-if="auth.user" />
 
     <!-- User info -->
     <div v-if="auth.user" class="flex items-center gap-3">
