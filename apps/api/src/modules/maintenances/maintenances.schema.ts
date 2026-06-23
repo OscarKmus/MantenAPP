@@ -4,18 +4,18 @@ export const createMaintenanceSchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
   equipmentIds: z.array(z.string().uuid()).min(1, "At least one equipment item is required"),
   templateId: z.string().uuid().optional(),
-});
+}).strict();
 
 export const updateMaintenanceSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
   status: z.enum(["DRAFT", "IN_PROGRESS", "CLOSED"]).optional(),
-});
+}).strict();
 
 export const updateMaintenanceItemSchema = z.object({
   actionTypeId: z.string().uuid().nullable().optional(),
   observations: z.string().max(2000).nullable().optional(),
   completed: z.boolean().optional(),
-});
+}).strict();
 
 export const closeMaintenanceSchema = z.object({
   clientSignatureData: z
@@ -32,7 +32,7 @@ export const closeMaintenanceSchema = z.object({
       (val) => val.startsWith("data:image/png;base64,") || val.startsWith("data:image/jpeg;base64,"),
       "Technician signature must be a base64 PNG or JPEG data URL"
     ),
-});
+}).strict();
 
 export const maintenanceQuerySchema = z.object({
   status: z.enum(["DRAFT", "IN_PROGRESS", "CLOSED"]).optional(),

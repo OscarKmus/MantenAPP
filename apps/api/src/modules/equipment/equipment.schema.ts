@@ -48,7 +48,7 @@ export const createEquipmentSchema = z.object({
   processor: optionalString(200),
   ram: optionalString(200),
   disk: optionalString(200),
-});
+}).strict();
 
 export const updateEquipmentSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -61,7 +61,7 @@ export const updateEquipmentSchema = z.object({
   processor: optionalString(200),
   ram: optionalString(200),
   disk: optionalString(200),
-});
+}).strict();
 
 export const equipmentQuerySchema = z.object({
   status: equipmentStatusEnum.optional(),
