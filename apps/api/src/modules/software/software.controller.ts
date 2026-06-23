@@ -6,7 +6,6 @@ import {
   createSoftware,
   updateSoftware,
   deleteSoftware,
-  listSoftwareByClient,
   listSoftwareByEquipment,
 } from "./software.service";
 import { validate } from "../../middleware/validate";
@@ -86,22 +85,6 @@ softwareRouter.delete("/software/:id", async (req: Request, res: Response, next:
     next(error);
   }
 });
-
-// GET /api/clients/:clientId/software
-softwareRouter.get(
-  "/clients/:clientId/software",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const clientId = Array.isArray(req.params.clientId)
-        ? req.params.clientId[0]
-        : req.params.clientId;
-      const software = await listSoftwareByClient(clientId);
-      res.json({ software });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 // GET /api/equipment/:equipmentId/software
 softwareRouter.get(

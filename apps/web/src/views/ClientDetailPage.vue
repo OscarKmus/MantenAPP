@@ -60,7 +60,7 @@ async function fetchSoftware() {
   softwareLoading.value = true;
   try {
     const { data } = await api.get<{ software: Software[] }>(
-      `/clients/${clientId.value}/software`
+      `/software?clientId=${clientId.value}`
     );
     softwareList.value = data.software;
   } catch {
