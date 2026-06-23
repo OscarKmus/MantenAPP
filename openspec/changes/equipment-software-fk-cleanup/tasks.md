@@ -4,10 +4,10 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | 150–200 |
+| Estimated changed lines | 150–200 (+ ~10 for Phase 7) |
 | 400-line budget risk | Low |
 | Chained PRs recommended | No |
-| Suggested split | Single PR (all 5 phases) |
+| Suggested split | Single PR (all 6 phases) |
 | Delivery strategy | auto-chain |
 | Chain strategy | pending |
 
@@ -48,3 +48,11 @@ Chain strategy: pending
 - [x] 6.2 In `apps/api/src/modules/software/software.service.ts`: remove `listSoftwareByClient` function (lines 100–113)
 - [x] 6.3 Grep monorepo for `Equipment.softwareId`, `equipment\.software[^L]`, and `GET.*software` to verify zero leftover references
 - [x] 6.4 Run `npx vue-tsc --noEmit` in `apps/web` and `pnpm --filter api build` in `apps/api` to verify typecheck passes
+
+## Phase 7: Fix UI Refresh on Software Create/Delete (bugfix)
+
+> **Discovered during user review** (pre-verify): after creating or deleting a software record in the ClientDetail SOFTWARE tab, the equipment cards' software badges (in the EQUIPOS tab and Inventory page) only reflect the change after a hard page refresh. Root cause: `handleSoftwareSubmit` and `handleSoftwareDelete` call `fetchSoftware()` (which only refreshes the local software array) but never refetch the equipment store, so `equipmentStore.equipment[*].softwareLicenses` stays stale.
+
+- [x] 7.1 In `apps/web/src/views/ClientDetailPage.vue`: in `handleSoftwareSubmit` (line 187), after `await fetchSoftware()` add `await equipmentStore.fetchEquipment(clientId.value)` so the equipment cards re-render with the new `softwareLicenses` immediately. Also call it on the PATCH branch (edit) — same fix.
+- [x] 7.2 Same fix in `handleSoftwareDelete` (line 201) — after `await fetchSoftware()` add `await equipmentStore.fetchEquipment(clientId.value)`.
+- [x] 7.3 Re-run `npx vue-tsc --noEmit` in `apps/web` to confirm no type regressions.
