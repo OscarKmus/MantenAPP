@@ -31,7 +31,7 @@ notificationsRouter.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const notification = await markRead(id, userId);
 
       if (!notification) {
