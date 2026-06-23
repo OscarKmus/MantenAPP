@@ -14,6 +14,8 @@ import { templatesRouter } from "./modules/templates/templates.controller";
 import { equipmentCategoriesRouter } from "./modules/equipment-categories/equipment-categories.controller";
 import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
+import { notificationsRouter } from "./modules/notifications/notifications.controller";
+import { pushRouter } from "./services/notifications/push.controller";
 
 const env = getEnv();
 const app = express();
@@ -39,6 +41,8 @@ app.use("/api", templatesRouter);
 app.use("/api/equipment-categories", equipmentCategoriesRouter);
 app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/push", pushRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
