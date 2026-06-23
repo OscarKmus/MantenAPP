@@ -329,19 +329,15 @@ const nextMaintenanceDisplay = computed(() => {
             :key="tab.id"
             role="tab"
             :aria-selected="activeTab === tab.id"
-            :disabled="tab.disabled"
             :class="[
               'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap',
               activeTab === tab.id
                 ? 'text-primary-700 border-b-2 border-primary-600 bg-primary-50/50'
-                : tab.disabled
-                  ? 'text-slate-400 cursor-not-allowed'
-                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
+                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50',
             ]"
-            @click="!tab.disabled && (activeTab = tab.id)"
+            @click="activeTab = tab.id"
           >
             {{ tab.label }}
-            <span v-if="tab.disabled" class="text-xs ml-1">(próximamente)</span>
           </button>
         </nav>
       </div>
