@@ -16,6 +16,8 @@ import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
 import { notificationsRouter } from "./modules/notifications/notifications.controller";
 import { pushRouter } from "./services/notifications/push.controller";
+import { startCron } from "./services/notifications/cron.service";
+import { initVapid } from "./services/notifications/push.service";
 
 const env = getEnv();
 const app = express();
@@ -52,6 +54,9 @@ async function start() {
   try {
     await prisma.$connect();
     console.log("Database connected");
+
+    initVapid();
+    startCron();
 
     app.listen(env.PORT, () => {
       console.log(`API running on http://localhost:${env.PORT}`);
