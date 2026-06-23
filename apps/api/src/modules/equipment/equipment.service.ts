@@ -21,7 +21,7 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus) 
     orderBy: { name: "asc" },
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      software: true,
+      softwareLicenses: true,
     },
   });
 }
@@ -31,7 +31,7 @@ export async function getEquipment(id: string) {
     where: { id },
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      software: true,
+      softwareLicenses: true,
     },
   });
   if (!equipment) {
@@ -65,7 +65,6 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     assignedTo: input.assignedTo || null,
     status: input.status ?? "ACTIVE",
     categoryId: input.categoryId ?? null,
-    softwareId: input.softwareId ?? null,
     processor: input.processor || null,
     ram: input.ram || null,
     disk: input.disk || null,
@@ -75,7 +74,7 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     data,
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      software: true,
+      softwareLicenses: true,
     },
   });
 }
@@ -102,7 +101,6 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
   if (input.assignedTo !== undefined) data.assignedTo = input.assignedTo;
   if (input.status !== undefined) data.status = input.status;
   if (input.categoryId !== undefined) data.categoryId = input.categoryId;
-  if (input.softwareId !== undefined) data.softwareId = input.softwareId;
   if (input.processor !== undefined) data.processor = input.processor;
   if (input.ram !== undefined) data.ram = input.ram;
   if (input.disk !== undefined) data.disk = input.disk;
@@ -112,7 +110,7 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
     data,
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
-      software: true,
+      softwareLicenses: true,
     },
   });
 }
