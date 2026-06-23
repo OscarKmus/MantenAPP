@@ -6,6 +6,7 @@ import { useEquipmentStore } from "@/stores/equipment";
 import EquipmentList from "@/components/equipment/EquipmentList.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
 import PdfStatus from "@/components/maintenance/PdfStatus.vue";
+import MaintenanceHistoryList from "@/components/history/MaintenanceHistoryList.vue";
 import api from "@/lib/api";
 import type { Software, LicenseType, Maintenance } from "@mantenti/types";
 
@@ -38,7 +39,7 @@ const tabs = [
   { id: "resumen", label: "Resumen" },
   { id: "equipos", label: "Equipos" },
   { id: "software", label: "Software" },
-  { id: "historial", label: "Historial", disabled: true },
+  { id: "historial", label: "Historial" },
 ];
 
 onMounted(async () => {
@@ -592,13 +593,9 @@ const nextMaintenanceDisplay = computed(() => {
         </div>
       </div>
 
-      <!-- Tab: Historial (placeholder) -->
-      <div v-if="activeTab === 'historial'" class="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-12 text-center">
-        <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p class="text-slate-600 font-medium">Historial de mantenciones</p>
-        <p class="text-sm text-slate-500 mt-1">Disponible en Slice 5</p>
+      <!-- Tab: Historial -->
+      <div v-if="activeTab === 'historial'">
+        <MaintenanceHistoryList :client-id="clientId" />
       </div>
     </template>
 
