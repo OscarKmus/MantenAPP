@@ -73,6 +73,7 @@
 | 9d0bb45 | feat(web): enable Historial tab with CLOSED maintenance history list |
 | 1e2c8ba | feat(web): add service worker, notifications route, and SW registration |
 | 4050aba | fix(web): fix type errors in push composable and ClientDetailPage |
+| 4ba5645 | docs: add design and proposal to mantenti-mvp-slice-6 |
 
 ## Files Changed
 
@@ -107,10 +108,10 @@
 ## Risks / Notes for Next Phase
 
 1. **Pre-existing tsc errors**: `apps/api` has 5 pre-existing errors in `equipment.service.ts` and `inventory.service.ts` (software include). These exist on master and are unrelated to this change.
-2. **VAPID keys**: Not generated yet. Need `npx web-push generate-vapid-keys` and add to `.env` before push notifications work.
+2. **VAPID keys**: Generated locally via `npx web-push generate-vapid-keys` and added to `.env` (gitignored, not committed). Public + private keys in `.env` lines 8-9. Required for push delivery and smoke test 8.4.
 3. **Express 5 param types**: `req.params.id` can be `string | string[]`. Used array check pattern consistent with existing code.
 4. **Vue template quotes**: Vue templates require single quotes inside `:class` bindings when attribute uses double quotes.
 
 ## Next Step
 
-Recommend `sdd-verify` — manual smoke tests (8.1-8.4) remain. All code typechecks clean.
+Ready for `sdd-verify`. All code typechecks clean; VAPID keys generated locally in `.env`. Smoke tests 8.1-8.4 are the remaining verification work.

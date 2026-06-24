@@ -22,7 +22,7 @@
 ## Phase 1: Dependencies & Config
 
 - [x] 1.1 Add `node-cron`, `web-push`, `@types/node-cron`, `@types/web-push` to `apps/api/package.json`, run `pnpm install`
-- [x] 1.2 Verify `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` exist in `.env` (or generate via `npx web-push generate-vapid-keys`) — already defined as optional in env.ts
+- [x] 1.2 Verify `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` exist in `.env` (or generate via `npx web-push generate-vapid-keys`) — keys generated locally via `npx web-push generate-vapid-keys` and added to `.env` (gitignored, not committed); VAPID_SUBJECT already present in `.env`
 
 ## Phase 2: Notifications Backend
 
