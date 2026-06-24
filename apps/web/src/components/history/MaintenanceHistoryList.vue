@@ -79,12 +79,16 @@ watch(() => props.clientId, () => fetchHistory());
     </div>
 
     <!-- List -->
-    <div v-else class="space-y-2">
-      <button
+    <ul v-else class="space-y-2 list-none" role="list">
+      <li
         v-for="m in maintenances"
         :key="m.id"
+        role="listitem"
+      >
+      <button
         class="w-full text-left bg-white rounded-lg border border-slate-200 p-4
-               hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+               hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         @click="navigateToDetail(m.id)"
       >
         <div class="flex items-center justify-between gap-4">
@@ -111,8 +115,9 @@ watch(() => props.clientId, () => fetchHistory());
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </div>
-      </button>
-    </div>
+        </button>
+      </li>
+    </ul>
 
     <!-- Pagination -->
     <div
@@ -121,7 +126,8 @@ watch(() => props.clientId, () => fetchHistory());
     >
       <button
         class="px-3 py-1.5 text-sm text-slate-600 border border-slate-300 rounded-lg
-               hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+               hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         :disabled="page <= 1"
         @click="fetchHistory(page - 1)"
       >
@@ -132,7 +138,8 @@ watch(() => props.clientId, () => fetchHistory());
       </span>
       <button
         class="px-3 py-1.5 text-sm text-slate-600 border border-slate-300 rounded-lg
-               hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+               hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         :disabled="page >= Math.ceil(total / limit)"
         @click="fetchHistory(page + 1)"
       >

@@ -67,7 +67,7 @@ onUnmounted(() => {
     <!-- Bell button -->
     <button
       class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100
-             focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
       aria-label="Notificaciones"
       @click="toggleDrawer"
     >
@@ -82,6 +82,8 @@ onUnmounted(() => {
       <!-- Badge -->
       <span
         v-if="store.unreadCount > 0"
+        :aria-label="`${store.unreadCount} notificaciones no leídas`"
+        role="status"
         class="absolute -top-0.5 -right-0.5 flex items-center justify-center
                min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white
                bg-red-500 rounded-full"
@@ -99,10 +101,10 @@ onUnmounted(() => {
 
     <!-- Drawer -->
     <Transition
-      enter-active-class="transition duration-200 ease-out"
+      enter-active-class="transition duration-200 ease-out motion-reduce:duration-0"
       enter-from-class="opacity-0 -translate-y-2"
       enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
+      leave-active-class="transition duration-150 ease-in motion-reduce:duration-0"
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-2"
     >
