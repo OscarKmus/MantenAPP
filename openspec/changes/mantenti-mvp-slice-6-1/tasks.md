@@ -45,40 +45,40 @@ Chain strategy: stacked-to-main
 ## Phase 1: PR-A — CRITICAL Fixes
 
 ### 1.1 Add pushsubscriptionchange handler
-- [ ] `apps/web/public/sw.js` — Add `pushsubscriptionchange` listener that re-subscribes and POSTs new subscription to `/api/push/subscribe`
+- [x] `apps/web/public/sw.js` — Add `pushsubscriptionchange` listener that re-subscribes and POSTs new subscription to `/api/push/subscribe`
 - Verify: SW still handles `push` + `notificationclick` events; new handler doesn't break existing flow
 
 ### 1.2 Add skipWaiting + clients.claim
-- [ ] `apps/web/public/sw.js` — Add `install` event with `self.skipWaiting()` and `activate` event with `self.clients.claim()`
+- [x] `apps/web/public/sw.js` — Add `install` event with `self.skipWaiting()` and `activate` event with `self.clients.claim()`
 - Verify: After redeploy, new SW activates immediately (test in DevTools → Application → Service Workers)
 
 ### 1.3 Cron transactional dedup with advisory lock
-- [ ] `apps/api/src/lib/lock.ts` (new) — `withAdvisoryLock<T>(key: bigint, fn: () => Promise<T>): Promise<T | null>` using `pg_advisory_xact_lock`
-- [ ] `apps/api/src/services/notifications/cron.service.ts` — Wrap `runReminders()` body in `withAdvisoryLock(NOTIFYING_KEY, ...)`
+- [x] `apps/api/src/lib/lock.ts` (new) — `withAdvisoryLock<T>(key: bigint, fn: () => Promise<T>): Promise<T | null>` using `pg_advisory_xact_lock`
+- [x] `apps/api/src/services/notifications/cron.service.ts` — Wrap `runReminders()` body in `withAdvisoryLock(NOTIFYING_KEY, ...)`
 - Verify: With 2 API workers, only 1 runs the cron (check logs for "lock acquired" / "lock skipped")
 
 ## Phase 2: PR-B — HIGH Fixes
 
 ### 2.1 VAPID setup documentation
-- [ ] `README.md` — Add "Setup VAPID" section with `npx web-push generate-vapid-keys` instructions
-- [ ] `apps/api/.env.example` — Add inline comments about VAPID_SUBJECT format (`mailto:` or `https://`)
+- [x] `README.md` — Add "Setup VAPID" section with `npx web-push generate-vapid-keys` instructions
+- [x] `apps/api/.env.example` — Add inline comments about VAPID_SUBJECT format (`mailto:` or `https://`)
 - Verify: New dev can follow README end-to-end and get push working
 
 ### 2.2 Bell drawer list semantics
-- [ ] `apps/web/src/components/layout/NotificationBell.vue` — Wrap notification list in `<ul role="list">` with `<li role="listitem">` per item (same pattern as MaintenanceHistoryList fix in slice 6)
+- [x] `apps/web/src/components/layout/NotificationBell.vue` — Wrap notification list in `<ul role="list">` with `<li role="listitem">` per item (same pattern as MaintenanceHistoryList fix in slice 6)
 - Verify: Screen reader announces "list with N items"
 
 ### 2.3 NotificationPreference model
-- [ ] `apps/api/prisma/schema.prisma` — Add `NotificationPreference` model with `userId` (unique FK to User), `pushEnabled` (default true), `reminderWindows` (string[], default `["3d", "1d", "0d"]`)
-- [ ] `apps/api/prisma/migrations/{timestamp}_notification_preference/` — generated migration
+- [x] `apps/api/prisma/schema.prisma` — Add `NotificationPreference` model with `userId` (unique FK to User), `pushEnabled` (default true), `reminderWindows` (string[], default `["3d", "1d", "0d"]`)
+- [x] `apps/api/prisma/migrations/{timestamp}_notification_preference/` — generated migration
 - Verify: `pnpm prisma migrate dev` applies cleanly; existing users get default preferences (backfilled via migration or app-level fallback)
 
 ### 2.4 Body length validation
-- [ ] `apps/api/src/modules/notifications/notifications.service.ts` — In `createNotification`, validate `body.length <= 500` (and `title.length <= 200`); throw a clear `ValidationError` if exceeded
+- [x] `apps/api/src/modules/notifications/notifications.service.ts` — In `createNotification`, validate `body.length <= 500` (and `title.length <= 200`); throw a clear `ValidationError` if exceeded
 - Verify: Creating a notification with body > 500 chars throws; <= 500 succeeds
 
 ### 2.5 markAllRead batching
-- [ ] `apps/api/src/modules/notifications/notifications.service.ts` — Refactor `markAllRead` to batch UPDATE in chunks of 1000 inside a transaction
+- [x] `apps/api/src/modules/notifications/notifications.service.ts` — Refactor `markAllRead` to batch UPDATE in chunks of 1000 inside a transaction
 - Verify: With 2500 unread notifications, the function runs 3 batches; no long table lock
 
 ## Phase 3: PR-C — MEDIUM Fixes

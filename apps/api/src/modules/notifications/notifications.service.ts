@@ -1,4 +1,5 @@
 import prisma from "../../lib/prisma";
+import { createError } from "../../middleware/error-handler";
 import type { ListNotificationsQuery } from "./notifications.schema";
 
 export async function listForUser(userId: string, params: ListNotificationsQuery) {
@@ -46,12 +47,29 @@ export async function markRead(id: string, userId: string) {
 }
 
 export async function markAllRead(userId: string): Promise<number> {
-  const result = await prisma.notification.updateMany({
-    where: { userId, isRead: false },
-    data: { isRead: true },
-  });
+  const BATCH_SIZE = 1000;
+  let totalUpdated = 0;
 
-  return result.count;
+  for (let i = 0; i < 100; i++) {
+    const batch = await prisma.notification.findMany({
+      where: { userId, isRead: false },
+      select: { id: true },
+      take: BATCH_SIZE,
+    });
+
+    if (batch.length === 0) break;
+
+    const result = await prisma.notification.updateMany({
+      where: { id: { in: batch.map((n) => n.id) } },
+      data: { isRead: true },
+    });
+
+    totalUpdated += result.count;
+
+    if (batch.length < BATCH_SIZE) break;
+  }
+
+  return totalUpdated;
 }
 
 export async function createNotification(
@@ -60,6 +78,13 @@ export async function createNotification(
   title: string,
   body: string
 ) {
+  if (body.length > 500) {
+    throw createError(400, "Notification body must be 500 characters or less");
+  }
+  if (title.length > 200) {
+    throw createError(400, "Notification title must be 200 characters or less");
+  }
+
   return prisma.notification.create({
     data: { userId, clientId, title, body },
   });

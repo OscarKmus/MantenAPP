@@ -18,6 +18,7 @@ model User {
 
   maintenances Maintenance[]
   notifications Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@map("users")
 }
@@ -257,6 +258,27 @@ model Notification {
 
   @@index([userId, isRead, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// ─── Notification Preferences ───────────────────────────
+enum NotificationChannel {
+  INAPP
+  PUSH
+  EMAIL
+}
+
+model NotificationPreference {
+  id        String              @id @default(uuid())
+  userId    String              @map("user_id")
+  channel   NotificationChannel
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
 }
 
 // ─── Push Subscriptions ─────────────────────────────────
