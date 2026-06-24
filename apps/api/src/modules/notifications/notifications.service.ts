@@ -1,4 +1,5 @@
 import prisma from "../../lib/prisma";
+import { createError } from "../../middleware/error-handler";
 import type { ListNotificationsQuery } from "./notifications.schema";
 
 export async function listForUser(userId: string, params: ListNotificationsQuery) {
@@ -60,6 +61,13 @@ export async function createNotification(
   title: string,
   body: string
 ) {
+  if (body.length > 500) {
+    throw createError(400, "Notification body must be 500 characters or less");
+  }
+  if (title.length > 200) {
+    throw createError(400, "Notification title must be 200 characters or less");
+  }
+
   return prisma.notification.create({
     data: { userId, clientId, title, body },
   });
