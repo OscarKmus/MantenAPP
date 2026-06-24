@@ -150,10 +150,13 @@ onUnmounted(() => {
         </div>
 
         <!-- List -->
-        <div v-else class="overflow-y-auto max-h-72">
-          <button
+        <ul v-else role="list" class="overflow-y-auto max-h-72 list-none p-0 m-0">
+          <li
             v-for="n in store.notifications"
             :key="n.id"
+            role="listitem"
+          >
+          <button
             class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors
                    border-b border-slate-50 last:border-0"
             :class="{ 'bg-primary-50/50': !n.isRead }"
@@ -171,7 +174,8 @@ onUnmounted(() => {
               </div>
             </div>
           </button>
-        </div>
+          </li>
+        </ul>
 
         <!-- Footer -->
         <div class="px-4 py-2.5 border-t border-slate-100 bg-slate-50">
