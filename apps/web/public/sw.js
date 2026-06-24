@@ -1,5 +1,32 @@
 // Service worker for push notifications
-// Minimal footprint — only handles push events and notification clicks
+// Minimal footprint — handles push events, notification clicks, and subscription rotation
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      if (!event.newSubscription) return;
+      const sub = event.newSubscription;
+      const subJson = sub.toJSON();
+      try {
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: subJson.keys.p256dh,
+              auth: subJson.keys.auth,
+            },
+          }),
+        });
+        console.log("[push] Resubscribed after subscription change");
+      } catch (err) {
+        console.error("[push] Resubscribe failed:", err);
+      }
+    })()
+  );
+});
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
