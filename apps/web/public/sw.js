@@ -1,6 +1,10 @@
 // Service worker for push notifications
 // Minimal footprint — handles push events, notification clicks, and subscription rotation
 
+// Activate new SW immediately on deploy — don't wait for all tabs to close
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
     (async () => {
