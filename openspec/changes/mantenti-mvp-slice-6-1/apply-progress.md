@@ -257,6 +257,8 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 | 15 | 8320219 | feat(web): expose isLoading in usePushSubscription and wire to bell |
 | 16 | 45a76b6 | docs(slice-6): verify archived design.md has no drift |
 | 17 | 9026f0a | docs(specs): extend notifications spec with PR-B/PR-C requirements |
+| 18 | 1a816c9 | docs(slice-6-1): update apply-progress and tasks for PR-C |
+| 19 | 42bef3c | fix(api): resolve pino type import and Express param typing |
 
 ### Files Changed (PR-C)
 
@@ -278,8 +280,8 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 
 | Target | Result | Details |
 |--------|--------|---------|
-| `pnpm --filter web build` | TBD | |
-| `pnpm --filter api build` | TBD | |
+| `pnpm --filter web build` | ✅ PASS | Clean build, no errors |
+| `pnpm --filter api build` | ✅ PASS | Clean build, no errors |
 
 ### Deviations from Design
 
