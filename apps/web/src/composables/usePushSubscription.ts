@@ -21,6 +21,7 @@ export function usePushSubscription() {
       "PushManager" in window
   );
   const isSubscribed = ref(false);
+  const isLoading = ref(false);
   const permission = ref<NotificationPermission>(
     typeof Notification !== "undefined" ? Notification.permission : "default"
   );
@@ -43,6 +44,7 @@ export function usePushSubscription() {
   async function subscribe(): Promise<boolean> {
     if (!isSupported.value || !VAPID_PUBLIC_KEY) return false;
 
+    isLoading.value = true;
     try {
       // Request permission
       const result = await Notification.requestPermission();
@@ -84,12 +86,15 @@ export function usePushSubscription() {
     } catch (err) {
       console.error("[push] Subscribe failed:", err);
       return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
   async function unsubscribe(): Promise<boolean> {
     if (!isSupported.value) return false;
 
+    isLoading.value = true;
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
@@ -106,6 +111,8 @@ export function usePushSubscription() {
     } catch (err) {
       console.error("[push] Unsubscribe failed:", err);
       return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -127,6 +134,7 @@ export function usePushSubscription() {
   return {
     isSupported,
     isSubscribed,
+    isLoading,
     permission,
     registerServiceWorker,
     subscribe,

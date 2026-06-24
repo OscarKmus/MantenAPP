@@ -2,10 +2,12 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useNotificationStore } from "@/stores/notifications";
+import { usePushSubscription } from "@/composables/usePushSubscription";
 import type { Notification } from "@mantenti/types";
 
 const store = useNotificationStore();
 const router = useRouter();
+const { isLoading } = usePushSubscription();
 const isOpen = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -68,6 +70,9 @@ onUnmounted(() => {
     <button
       class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100
              focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
+      :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
+      :disabled="isLoading"
+      :aria-busy="isLoading"
       aria-label="Notificaciones"
       @click="toggleDrawer"
     >
