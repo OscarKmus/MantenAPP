@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import prisma from "../../lib/prisma";
+import logger from "../../lib/logger";
 import { withAdvisoryLock } from "../../lib/lock";
 import { createNotification } from "../../modules/notifications/notifications.service";
 import { sendToUser } from "./push.service";
@@ -22,21 +23,21 @@ const WINDOWS: ReminderWindow[] = [
 export function startCron() {
   // Run daily at 09:00 UTC
   cron.schedule("0 9 * * *", async () => {
-    console.log("[cron] Running reminder check at", new Date().toISOString());
+    logger.info("[cron] Running reminder check");
 
     try {
       await runReminders();
     } catch (err) {
-      console.error("[cron] Error running reminders:", err);
+      logger.error({ err }, "[cron] Error running reminders");
     }
   });
 
-  console.log("[cron] Scheduled daily reminders at 09:00 UTC");
+  logger.info("[cron] Scheduled daily reminders at 09:00 UTC");
 }
 
 export async function runReminders() {
   return await withAdvisoryLock(NOTIFYING_KEY, async () => {
-    console.log("[cron] Acquired advisory lock, running reminders");
+    logger.info("[cron] Acquired advisory lock, running reminders");
 
     const now = new Date();
 
@@ -46,7 +47,7 @@ export async function runReminders() {
     });
 
     if (users.length === 0) {
-      console.log("[cron] No users found, skipping");
+      logger.info("[cron] No users found, skipping");
       return;
     }
 
@@ -118,6 +119,6 @@ export async function runReminders() {
       }
     }
 
-    console.log(`[cron] Done: ${created} created, ${skipped} deduped`);
+    logger.info({ created, skipped }, "[cron] Done");
   });
 }

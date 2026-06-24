@@ -1,3 +1,4 @@
+import logger from "./logger";
 import prisma from "./prisma";
 
 /**
@@ -18,7 +19,7 @@ export async function withAdvisoryLock<T>(
     });
   } catch (err) {
     // If lock acquisition fails (e.g. statement timeout), return null
-    console.warn(`[lock] Failed to acquire advisory lock ${key}:`, err);
+    logger.warn({ key: key.toString(), err }, "[lock] Failed to acquire advisory lock");
     return null;
   }
 }
