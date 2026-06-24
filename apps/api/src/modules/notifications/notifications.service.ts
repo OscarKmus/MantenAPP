@@ -47,12 +47,23 @@ export async function markRead(id: string, userId: string) {
 }
 
 export async function markAllRead(userId: string): Promise<number> {
-  const result = await prisma.notification.updateMany({
-    where: { userId, isRead: false },
-    data: { isRead: true },
-  });
+  const BATCH_SIZE = 1000;
+  let totalUpdated = 0;
 
-  return result.count;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const result = await prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+      take: BATCH_SIZE,
+    });
+
+    totalUpdated += result.count;
+
+    if (result.count < BATCH_SIZE) break;
+  }
+
+  return totalUpdated;
 }
 
 export async function createNotification(
