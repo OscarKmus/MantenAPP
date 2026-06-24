@@ -85,7 +85,8 @@ pushRouter.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.userId;
-      const endpoint = decodeURIComponent(req.params.endpoint);
+      const rawEndpoint = Array.isArray(req.params.endpoint) ? req.params.endpoint[0] : req.params.endpoint;
+      const endpoint = decodeURIComponent(rawEndpoint);
 
       const removed = await removeSubscription(userId, endpoint);
       if (!removed) {
