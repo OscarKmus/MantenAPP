@@ -162,3 +162,85 @@ THEN drawer transitions SHALL be disabled (duration 0).
 
 WHEN the user navigates with keyboard
 THEN interactive elements SHALL show `focus-visible` ring styles.
+
+### Requirement: Notification Preference Management
+
+The system SHALL allow users to manage per-channel notification preferences (INAPP, PUSH, EMAIL).
+
+#### Scenario: Get preferences
+
+WHEN a user sends `GET /api/notifications/preferences`
+THEN the system SHALL return an array of `NotificationPreference` objects for that user.
+AND each object SHALL include `channel` and `enabled` fields.
+
+#### Scenario: Update preference
+
+WHEN a user sends `PATCH /api/notifications/preferences` with `{ channel, enabled }`
+THEN the system SHALL upsert the preference for that user+channel combination.
+AND the response SHALL include the updated preference.
+
+#### Scenario: Default behavior
+
+WHEN a user has no stored preferences
+THEN `getForUser` SHALL return an empty array.
+AND the system SHALL treat all channels as enabled by default.
+
+### Requirement: Notification Body Length Validation
+
+The system SHALL enforce maximum lengths on notification title and body fields.
+
+#### Scenario: Body too long
+
+WHEN a notification is created with `body.length > 500`
+THEN the system SHALL reject the request with a 400 error.
+
+#### Scenario: Title too long
+
+WHEN a notification is created with `title.length > 200`
+THEN the system SHALL reject the request with a 400 error.
+
+### Requirement: Batched markAllRead
+
+The system SHALL mark all unread notifications as read in batches to avoid long-running table locks.
+
+#### Scenario: Large unread set
+
+WHEN a user has more than 1000 unread notifications
+THEN `markAllRead` SHALL process them in chunks of 1000 using findMany + updateMany.
+AND the system SHALL safeguard with a maximum of 100 iterations.
+
+#### Scenario: Return count
+
+WHEN `markAllRead` completes
+THEN it SHALL return the total number of notifications updated.
+
+### Requirement: Structured Logging
+
+The notification services SHALL use structured logging via `pino` instead of `console.log/error/warn`.
+
+#### Scenario: Production logging
+
+WHEN `NODE_ENV` is `"production"`
+THEN log output SHALL be JSON format with structured fields.
+
+#### Scenario: Development logging
+
+WHEN `NODE_ENV` is not `"production"`
+THEN log output SHALL use `pino-pretty` for human-readable formatting.
+
+### Requirement: Push Subscription Management
+
+The system SHALL allow users to list and remove their push subscriptions.
+
+#### Scenario: List subscriptions
+
+WHEN a user sends `GET /api/push/subscriptions`
+THEN the system SHALL return an array of the user's subscriptions with `id`, `endpoint`, and `createdAt`.
+AND the response SHALL NOT include sensitive key material (`p256dh`, `auth`).
+
+#### Scenario: Remove subscription
+
+WHEN a user sends `DELETE /api/push/subscriptions/:endpoint` (URL-encoded)
+THEN the system SHALL delete the matching subscription for that user.
+AND the system SHALL return 204 No Content.
+AND if the subscription does not exist, the system SHALL return 404.
