@@ -50,17 +50,23 @@ export async function markAllRead(userId: string): Promise<number> {
   const BATCH_SIZE = 1000;
   let totalUpdated = 0;
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const result = await prisma.notification.updateMany({
+  for (let i = 0; i < 100; i++) {
+    const batch = await prisma.notification.findMany({
       where: { userId, isRead: false },
-      data: { isRead: true },
+      select: { id: true },
       take: BATCH_SIZE,
+    });
+
+    if (batch.length === 0) break;
+
+    const result = await prisma.notification.updateMany({
+      where: { id: { in: batch.map((n) => n.id) } },
+      data: { isRead: true },
     });
 
     totalUpdated += result.count;
 
-    if (result.count < BATCH_SIZE) break;
+    if (batch.length < BATCH_SIZE) break;
   }
 
   return totalUpdated;
