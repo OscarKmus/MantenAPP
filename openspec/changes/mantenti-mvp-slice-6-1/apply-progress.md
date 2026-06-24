@@ -1,4 +1,4 @@
-# Apply Progress: mantenti-mvp-slice-6-1 (PR-A)
+# Apply Progress: mantenti-mvp-slice-6-1
 
 ## Summary
 
@@ -79,3 +79,101 @@
 ## Next Step
 
 PR-A complete. Stacked-to-main: wait for user merge to main, then proceed with PR-B (NotificationPreference model, body validation, markAllRead batching, Bell list semantics, VAPID docs).
+
+---
+
+## PR-B: HIGH Fixes
+
+### Summary
+
+| Field | Value |
+|-------|-------|
+| PR | PR-B (HIGH fixes) |
+| Branch | slice-6-1/pr-b |
+| Base | master (contains PR-A) |
+| Total tasks (PR-B) | 5 |
+| Completed | 5 |
+| Pending | 0 |
+| Mode | Standard (no test runner) |
+| Delivery | chained (stacked-to-main) |
+| Chain strategy | stacked-to-main |
+| Review budget | ≤400 lines per PR |
+
+### Completed Tasks
+
+#### Phase 2: PR-B — HIGH Fixes
+
+- [x] H1 — `docs(api): document VAPID setup in README and .env.example` (826a697)
+  - Created `README.md` with full VAPID setup section (`npx web-push generate-vapid-keys`)
+  - Updated `.env.example` with inline comments about VAPID_SUBJECT format and disabled-when-empty behavior
+
+- [x] H2 — `fix(web): add list semantics to notifications bell drawer` (b6c0012)
+  - Changed `<div>` wrapper to `<ul role="list">` with `role="listitem"` on each `<li>`
+  - Added `list-none p-0 m-0` to reset default list styling
+
+- [x] H3 — `feat(api): add NotificationPreference model, migration, and service stub` (a34e20a)
+  - Added `NotificationChannel` enum (INAPP, PUSH, EMAIL) to Prisma schema
+  - Added `NotificationPreference` model with composite unique on `(userId, channel)`
+  - Created migration `20260624000000_notification_preference`
+  - Created `preferences.service.ts` with `getForUser(userId)` and `setEnabled(userId, channel, enabled)`
+  - Wired GET + PATCH `/api/notifications/preferences` routes in controller (with validation)
+
+- [x] H4 — `fix(api): validate notification body length (max 500 chars)` (bbbfb41)
+  - Added runtime `body.length > 500` and `title.length > 200` checks in `createNotification()`
+  - Uses `createError(400, ...)` matching existing error pattern
+
+- [x] H5 — `perf(api): batch markAllRead updates in chunks of 1000` (7118a3d, 175c173)
+  - Refactored `markAllRead` to use `findMany({ take: 1000 })` + `updateMany({ where: { id: { in: [...] } } })` loop
+  - Safeguards with max 100 iterations (100k notifications ceiling)
+  - Note: `take` is not valid on `updateMany` in Prisma 6 types — used findMany+updateMany pattern instead
+
+### Commits (PR-B)
+
+| # | Hash | Message |
+|---|------|---------|
+| 4 | 826a697 | docs(api): document VAPID setup in README and .env.example |
+| 5 | b6c0012 | fix(web): add list semantics to notifications bell drawer |
+| 6 | a34e20a | feat(api): add NotificationPreference model, migration, and service stub |
+| 7 | bbbfb41 | fix(api): validate notification body length (max 500 chars) |
+| 8 | 7118a3d | perf(api): batch markAllRead updates in chunks of 1000 |
+| 9 | 175c173 | fix(api): use findMany+updateMany loop for batch markAllRead |
+
+### Files Changed (PR-B)
+
+| File | Action | Commit | Description |
+|------|--------|--------|-------------|
+| `README.md` | Created | 4 | VAPID setup documentation |
+| `.env.example` | Modified | 4 | Improved VAPID inline comments |
+| `apps/web/src/components/layout/NotificationBell.vue` | Modified | 5 | `<ul role="list">` + `<li role="listitem">` semantics |
+| `apps/api/prisma/schema.prisma` | Modified | 6 | NotificationChannel enum + NotificationPreference model |
+| `apps/api/prisma/migrations/20260624000000_notification_preference/migration.sql` | Created | 6 | Migration for notification_preferences table |
+| `apps/api/src/modules/notifications/preferences.service.ts` | Created | 6 | getForUser + setEnabled service stub |
+| `apps/api/src/modules/notifications/notifications.controller.ts` | Modified | 6 | GET + PATCH /preferences routes |
+| `apps/api/src/modules/notifications/notifications.service.ts` | Modified | 7, 8, 9 | Body validation + batched markAllRead |
+
+### Build Results (PR-B)
+
+| Target | Result | Details |
+|--------|--------|---------|
+| `pnpm --filter web build` | ✅ PASS | Clean build, no errors |
+| `pnpm --filter api build` | ✅ PASS | Clean build — pre-existing errors resolved by Prisma client regeneration |
+
+### Deviations from Design
+
+1. **H3 model shape**: The orchestrator spec called for `(userId, channel, enabled)` with a `NotificationChannel` enum. The tasks.md had a different shape (`pushEnabled`, `reminderWindows`). Used the orchestrator spec (channel-based enum) as it's more flexible and matches the PR-B scope description.
+
+2. **H5 batching approach**: `take` on `updateMany` is typed as `never` in Prisma 6 client types (not yet supported at the type level despite being valid SQL). Switched to `findMany({ take })` + `updateMany({ where: { id: { in } } })` loop — same chunking behavior, two queries per batch instead of one.
+
+3. **H5 return contract**: Still returns `number` (count of updated rows). The `findMany+updateMany` loop produces the same result.
+
+### Risks / Notes
+
+1. **NotificationPreference migration**: The migration SQL creates a new table and enum. No data backfill — existing users will have no rows in `notification_preferences`. The service handles this by returning an empty array from `getForUser()`.
+
+2. **Prisma client regeneration**: The `prisma generate` run on this branch resolved the 5 pre-existing type errors in `equipment.service.ts` and `inventory.service.ts` (the `software` include). These were caused by a stale Prisma client, not actual code bugs.
+
+3. **`take` on `updateMany`**: Prisma 6 runtime supports it but types don't. The findMany+updateMany workaround is functionally equivalent. Monitor Prisma releases for type-level `take` support on `updateMany`.
+
+### Next Step
+
+PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured logging, count dedup, composite index, push subscription management, SW URL tightening, isLoading state, design drift fix, spec update).
