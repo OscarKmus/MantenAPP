@@ -6,19 +6,21 @@ export async function listForUser(userId: string, params: ListNotificationsQuery
   const { unreadOnly, page, limit } = params;
   const skip = (page - 1) * limit;
 
-  const where = {
+  const listWhere = {
     userId,
     ...(unreadOnly ? { isRead: false } : {}),
   };
 
+  // Counts always from the same base: total = all for user, unreadCount = unread for user
+  // This avoids filter-parity bugs where total drifts from unreadCount
   const [notifications, total, unreadCount] = await Promise.all([
     prisma.notification.findMany({
-      where,
+      where: listWhere,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
-    prisma.notification.count({ where }),
+    prisma.notification.count({ where: { userId } }),
     prisma.notification.count({ where: { userId, isRead: false } }),
   ]);
 
