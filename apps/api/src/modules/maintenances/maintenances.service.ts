@@ -299,7 +299,8 @@ export async function closeMaintenance(id: string, input: CloseMaintenanceInput)
 export async function listClientMaintenances(
   clientId: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  status?: string
 ) {
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -307,10 +308,14 @@ export async function listClientMaintenances(
   }
 
   const skip = (page - 1) * limit;
+  const where = {
+    clientId,
+    ...(status ? { status: status as "DRAFT" | "IN_PROGRESS" | "CLOSED" } : {}),
+  };
 
   const [maintenances, total] = await Promise.all([
     prisma.maintenance.findMany({
-      where: { clientId },
+      where,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
@@ -321,7 +326,7 @@ export async function listClientMaintenances(
         _count: { select: { items: true } },
       },
     }),
-    prisma.maintenance.count({ where: { clientId } }),
+    prisma.maintenance.count({ where }),
   ]);
 
   return { maintenances, total, page, limit };

@@ -42,7 +42,8 @@ clientsRouter.get("/:id/maintenances", async (req: Request, res: Response, next:
     const id = getParam(req.params.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const result = await listClientMaintenances(id, page, limit);
+    const status = req.query.status as string | undefined;
+    const result = await listClientMaintenances(id, page, limit, status);
     res.json(result);
   } catch (error) {
     next(error);

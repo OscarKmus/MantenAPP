@@ -14,6 +14,10 @@ import { templatesRouter } from "./modules/templates/templates.controller";
 import { equipmentCategoriesRouter } from "./modules/equipment-categories/equipment-categories.controller";
 import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
+import { notificationsRouter } from "./modules/notifications/notifications.controller";
+import { pushRouter } from "./services/notifications/push.controller";
+import { startCron } from "./services/notifications/cron.service";
+import { initVapid } from "./services/notifications/push.service";
 
 const env = getEnv();
 const app = express();
@@ -39,6 +43,8 @@ app.use("/api", templatesRouter);
 app.use("/api/equipment-categories", equipmentCategoriesRouter);
 app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/push", pushRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
@@ -48,6 +54,9 @@ async function start() {
   try {
     await prisma.$connect();
     console.log("Database connected");
+
+    initVapid();
+    startCron();
 
     app.listen(env.PORT, () => {
       console.log(`API running on http://localhost:${env.PORT}`);
