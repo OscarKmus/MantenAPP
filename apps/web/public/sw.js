@@ -64,10 +64,15 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if open
+      // Focus existing window if open (only match /clients paths)
       for (const client of clientList) {
-        if (client.url.includes("/clients") && "focus" in client) {
-          return client.focus();
+        try {
+          const clientPath = new URL(client.url).pathname;
+          if ((clientPath === "/clients" || clientPath.startsWith("/clients/")) && "focus" in client) {
+            return client.focus();
+          }
+        } catch {
+          // Invalid URL — skip
         }
       }
       // Otherwise open new window
