@@ -74,6 +74,7 @@
 | 1e2c8ba | feat(web): add service worker, notifications route, and SW registration |
 | 4050aba | fix(web): fix type errors in push composable and ClientDetailPage |
 | 4ba5645 | docs: add design and proposal to mantenti-mvp-slice-6 |
+| f711be4 | fix(web): a11y — badge aria-label, reduced-motion, focus-visible, list semantics |
 
 ## Files Changed
 
@@ -114,4 +115,4 @@
 
 ## Next Step
 
-Ready for `sdd-verify`. All code typechecks clean; VAPID keys generated locally in `.env`. Smoke tests 8.1-8.4 are the remaining verification work.
+Ready for `sdd-archive`. All code typechecks clean; VAPID keys generated locally in `.env`; a11y issues from verify report (W1, S1, S2, S3) all fixed in commit `f711be4`. Smoke tests 8.1-8.3 passed; 8.2 + 8.4 are browser-only and code-verified.
