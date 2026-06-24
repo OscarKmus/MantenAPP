@@ -109,6 +109,21 @@ export function usePushSubscription() {
     }
   }
 
+  async function listSubscriptions(): Promise<{ id: string; endpoint: string; createdAt: string }[]> {
+    const { data } = await api.get("/push/subscriptions");
+    return data.subscriptions;
+  }
+
+  async function removeSubscription(endpoint: string): Promise<boolean> {
+    try {
+      await api.delete(`/push/subscriptions/${encodeURIComponent(endpoint)}`);
+      return true;
+    } catch (err) {
+      console.error("[push] Remove subscription failed:", err);
+      return false;
+    }
+  }
+
   return {
     isSupported,
     isSubscribed,
@@ -116,5 +131,7 @@ export function usePushSubscription() {
     registerServiceWorker,
     subscribe,
     unsubscribe,
+    listSubscriptions,
+    removeSubscription,
   };
 }

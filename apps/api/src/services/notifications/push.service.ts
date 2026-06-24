@@ -77,3 +77,18 @@ export async function sendAll(payload: object) {
     }
   }
 }
+
+export async function listSubscriptions(userId: string) {
+  return prisma.pushSubscription.findMany({
+    where: { userId },
+    select: { id: true, endpoint: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function removeSubscription(userId: string, endpoint: string) {
+  const deleted = await prisma.pushSubscription.deleteMany({
+    where: { userId, endpoint },
+  });
+  return deleted.count > 0;
+}
