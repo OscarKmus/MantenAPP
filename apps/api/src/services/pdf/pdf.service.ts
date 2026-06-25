@@ -212,6 +212,7 @@ export async function generateMaintenancePdf(
     const doc = new PDFDocument({
       size: "A4",
       margin: 50,
+      bufferPages: true,
       info: {
         Title: "Reporte de Mantención",
         Author: env.COMPANY_NAME,
@@ -582,22 +583,26 @@ export async function generateMaintenancePdf(
 
       const photoWidth = (pageWidth - 20) / 3;
       const photoHeight = 80;
+      const photoCellH = photoHeight + 25;
+
+      // Track the bottom of the last row across pages
+      let currentPhotoPageTop = currentY;
+      let currentPhotoRow = 0;
 
       photos.forEach((photo, idx) => {
         const col = idx % 3;
         const row = Math.floor(idx / 3);
         const x = 50 + col * (photoWidth + 10);
-        const y = currentY + row * (photoHeight + 25);
+        const y = currentPhotoPageTop + (row - currentPhotoRow) * photoCellH;
 
-        // Check page break
-        if (y + photoHeight + 25 > 750) {
+        // Check page break — if this row doesn't fit, add a new page
+        if (y + photoCellH > 750) {
           doc.addPage();
-          currentY = 50;
-          // Recalculate position on new page
-          const newRow = 0;
-          const newY = currentY + newRow * (photoHeight + 25);
+          currentPhotoPageTop = 50;
+          currentPhotoRow = row;
+          const placeY = 50;
           try {
-            doc.image(photo.buffer, x, newY, {
+            doc.image(photo.buffer, x, placeY, {
               width: photoWidth,
               height: photoHeight,
               fit: [photoWidth, photoHeight],
@@ -609,7 +614,7 @@ export async function generateMaintenancePdf(
             .fontSize(7)
             .font("Helvetica")
             .fillColor(TEXT_MUTED)
-            .text(photo.caption, x, newY + photoHeight + 4, {
+            .text(photo.caption, x, placeY + photoHeight + 4, {
               width: photoWidth,
               align: "center",
             });
@@ -636,8 +641,14 @@ export async function generateMaintenancePdf(
           });
       });
 
-      const photoRows = Math.ceil(photos.length / 3);
-      currentY += photoRows * (photoHeight + 25) + 10;
+      // Calculate the actual Y after the last photo on the last page
+      const maxPhotoRow = photos.length > 0
+        ? Math.max(...photos.map((_, i) => Math.floor(i / 3)))
+        : -1;
+      if (maxPhotoRow >= 0) {
+        const rowsOnLastPage = maxPhotoRow - currentPhotoRow + 1;
+        currentY = currentPhotoPageTop + rowsOnLastPage * photoCellH + 10;
+      }
     }
 
     // ─── Notes Section ──────────────────────────────
