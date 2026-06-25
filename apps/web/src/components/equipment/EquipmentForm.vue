@@ -105,15 +105,6 @@ const showComponentsTab = computed(() => {
   return selectedCategory.value?.isComputer ?? false;
 });
 
-function getSoftwareExpirationColor(expiresAt: string): string {
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (daysUntil < 30) return "text-red-600";
-  if (daysUntil < 90) return "text-amber-600";
-  return "text-green-600";
-}
-
 function getSoftwareExpirationLabel(expiresAt: string): string {
   const now = new Date();
   const expires = new Date(expiresAt);
@@ -229,9 +220,7 @@ async function deleteCategory(cat: EquipmentCategory) {
   }
 }
 
-function openAddComponent() {
-  // Deprecated - components are now simple string fields
-}
+
 </script>
 
 <template>

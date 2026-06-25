@@ -24,15 +24,6 @@ async function handleDownload() {
   }
 }
 
-async function handleGenerate() {
-  try {
-    const path = await pdfStore.generatePdf(props.maintenanceId);
-    emit("update:pdfPath", path);
-  } catch (err: any) {
-    alert(err.message);
-  }
-}
-
 async function handleGenerateAndDownload() {
   try {
     await pdfStore.generateAndDownload(props.maintenanceId);

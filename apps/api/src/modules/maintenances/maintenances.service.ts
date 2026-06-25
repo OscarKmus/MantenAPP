@@ -1,6 +1,5 @@
 import prisma from "../../lib/prisma";
 import { createError } from "../../middleware/error-handler";
-import { localStorage } from "../../services/storage/local.provider";
 import { generateMaintenancePdf } from "../../services/pdf/pdf.service";
 import type {
   CreateMaintenanceInput,

@@ -9,7 +9,7 @@ export class LocalStorageProvider implements StorageProvider {
   /**
    * Store a file under storage/{subdir}/{YYYY}/{MM}/{uuid}.{ext}
    */
-  async put(buffer: Buffer, mimeType: string, ext: string, subdir: string = "attachments"): Promise<StorageResult> {
+  async put(buffer: Buffer, _mimeType: string, ext: string, subdir: string = "attachments"): Promise<StorageResult> {
     const now = new Date();
     const year = now.getFullYear().toString();
     const month = (now.getMonth() + 1).toString().padStart(2, "0");

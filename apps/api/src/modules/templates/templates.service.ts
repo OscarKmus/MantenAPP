@@ -116,7 +116,7 @@ export async function updateTemplate(id: string, input: UpdateTemplateInput) {
 
   return prisma.$transaction(async (tx) => {
     // Update template metadata
-    const template = await tx.template.update({
+    await tx.template.update({
       where: { id },
       data: {
         ...(input.name !== undefined && { name: input.name }),
