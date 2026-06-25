@@ -207,10 +207,10 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
   - Structured logging with context objects (endpoint, created, skipped, err)
   - Added `pino` and `pino-pretty` to api dependencies
 
-- [x] M2 — `fix(api): dedupe unread count in listForUser` (f03bfef)
-  - `total` now always counts ALL notifications for the user (ignores unreadOnly filter)
-  - `unreadCount` always counts unread-only (single source of truth)
-  - Fixes filter-parity bug where total and unreadCount could diverge or double-count
+- [~] M2 — `fix(api): dedupe unread count in listForUser` (f03bfef) **REVERTED** in 212d460
+  - Original intent: `total` always counts ALL notifications, `unreadCount` always counts unread-only (single source of truth)
+  - **Reverted**: frontend never passes `unreadOnly=true` to `fetchNotifications` (only `pageNum`), so the M2 semantics change was not exercised. Keeping filter-coupled `total` (matches the standard pagination contract) avoids introducing a latent bug if a future "unread only" filter toggle is added.
+  - Final state: `count({ where })` — `total` reflects the current filter (parity with `findMany` skip/take).
 
 - [x] M3 — `chore(api): verify Notification composite index (userId, isRead, createdAt)` (67eb7de)
   - Confirmed `@@index([userId, isRead, createdAt(sort: Desc)])` exists on Notification model
@@ -259,6 +259,7 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 | 17 | 9026f0a | docs(specs): extend notifications spec with PR-B/PR-C requirements |
 | 18 | 1a816c9 | docs(slice-6-1): update apply-progress and tasks for PR-C |
 | 19 | 42bef3c | fix(api): resolve pino type import and Express param typing |
+| 20 | 212d460 | Revert "fix(api): dedupe unread count in listForUser" |
 
 ### Files Changed (PR-C)
 
@@ -269,7 +270,7 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 | `apps/api/src/services/notifications/push.service.ts` | Modified | 10, 13 | Logger migration + listSubscriptions/removeSubscription |
 | `apps/api/src/services/notifications/cron.service.ts` | Modified | 10 | Logger migration |
 | `apps/api/src/lib/lock.ts` | Modified | 10 | Logger migration |
-| `apps/api/src/modules/notifications/notifications.service.ts` | Modified | 11 | Count dedup fix in listForUser |
+| `apps/api/src/modules/notifications/notifications.service.ts` | Modified | 11, 20 | Count dedup fix in listForUser (reverted in 20) |
 | `apps/api/src/services/notifications/push.controller.ts` | Modified | 13 | GET/DELETE /api/push/subscriptions routes |
 | `apps/web/src/composables/usePushSubscription.ts` | Modified | 13, 15 | listSubscriptions/removeSubscription + isLoading state |
 | `apps/web/public/sw.js` | Modified | 14 | URL match tightening |
@@ -295,7 +296,7 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 
 1. **pino dependency size**: pino is lightweight (~5KB gzipped) but pino-pretty is heavier. pino-pretty is only loaded in dev mode via transport config — production bundle is unaffected.
 
-2. **`listForUser` count semantics change**: `total` now always returns the count of ALL notifications for the user, regardless of `unreadOnly` filter. Previously, when `unreadOnly=true`, `total` returned the unread count. Frontend consumers should be aware that `total` is always "all notifications" and `unreadCount` is always "unread only".
+2. **`listForUser` count semantics (final, after revert)**: `total` reflects the current filter (filter-coupled). When `unreadOnly` is true, `total` returns the unread count and `unreadCount` returns the same value — this matches the standard pagination contract (`Math.ceil(total / limit)` pages). When `unreadOnly` is false/undefined, `total` returns the count of all notifications for the user. The M2 attempt to make `total` always filter-independent was reverted (commit 212d460) because (a) the frontend never sets `unreadOnly=true` in `fetchNotifications`, and (b) the original filter-coupled behavior is safer if a future "unread only" toggle is added.
 
 3. **DELETE /api/push/subscriptions/:endpoint**: The endpoint is URL-encoded in the path. The controller uses `decodeURIComponent()` to recover the original endpoint URL. Axios on the frontend uses `encodeURIComponent()`.
 
@@ -303,4 +304,4 @@ PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured l
 
 ### Next Step
 
-PR-C complete. Stacked-to-main: ready for verification (build both apps, verify clean git status) and merge.
+PR-C complete (M2 reverted, see note above). Stacked-to-main: ready for verification (rebuild both apps with the revert, verify clean git status) and merge.
