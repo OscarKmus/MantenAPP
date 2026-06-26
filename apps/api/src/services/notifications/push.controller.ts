@@ -79,7 +79,13 @@ pushRouter.get(
   }
 );
 
-// DELETE /api/push/subscriptions/:endpoint (URL-encoded)
+// DELETE /api/push/subscriptions/:endpoint
+// The `:endpoint` path param is the full push subscription endpoint URL,
+// which is URL-encoded by the client (axios uses `encodeURIComponent`).
+// Express decodes the path segment once when reading `req.params`, so we
+// call `decodeURIComponent` defensively in case the value was double-encoded
+// or arrived with raw special characters. The decoded value is then matched
+// exactly against the stored `endpoint` column (a unique key in the schema).
 pushRouter.delete(
   "/subscriptions/:endpoint",
   async (req: Request, res: Response, next: NextFunction) => {
