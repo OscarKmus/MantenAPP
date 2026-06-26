@@ -3,6 +3,7 @@ import { pushSubscribeSchema, pushUnsubscribeSchema } from "../../modules/notifi
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
 import prisma from "../../lib/prisma";
+import { listSubscriptions, removeSubscription } from "./push.service";
 
 export const pushRouter: IRouter = Router();
 
@@ -53,6 +54,42 @@ pushRouter.post(
       });
 
       if (deleted.count === 0) {
+        res.status(404).json({ error: "Subscription not found" });
+        return;
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/push/subscriptions
+pushRouter.get(
+  "/subscriptions",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.userId;
+      const subscriptions = await listSubscriptions(userId);
+      res.json({ subscriptions });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// DELETE /api/push/subscriptions/:endpoint (URL-encoded)
+pushRouter.delete(
+  "/subscriptions/:endpoint",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.userId;
+      const rawEndpoint = Array.isArray(req.params.endpoint) ? req.params.endpoint[0] : req.params.endpoint;
+      const endpoint = decodeURIComponent(rawEndpoint);
+
+      const removed = await removeSubscription(userId, endpoint);
+      if (!removed) {
         res.status(404).json({ error: "Subscription not found" });
         return;
       }

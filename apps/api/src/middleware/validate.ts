@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { ZodSchema, ZodError } from "zod";
+import { ZodSchema } from "zod";
 
 type RequestPart = "body" | "query" | "params";
 

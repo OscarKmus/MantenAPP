@@ -1,3 +1,4 @@
+import logger from "./logger";
 import prisma from "./prisma";
 
 /**
@@ -11,14 +12,19 @@ export async function withAdvisoryLock<T>(
 ): Promise<T | null> {
   try {
     return await prisma.$transaction(async (tx) => {
-      // Lock attempt — this will block until acquired, but xact_lock has no SKIP LOCKED
-      // so we use try/transaction to timeout via statement timeout if needed
-      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${key})`);
+      // Non-blocking lock attempt — returns false immediately if another worker holds it
+      const rows = await tx.$queryRawUnsafe<Array<{ pg_try_advisory_xact_lock: boolean }>>(
+        `SELECT pg_try_advisory_xact_lock(${key})`
+      );
+      if (!rows?.[0]?.pg_try_advisory_xact_lock) {
+        logger.warn({ key: key.toString() }, "[lock] Another worker holds the lock, skipping");
+        return null;
+      }
       return await fn();
     });
   } catch (err) {
     // If lock acquisition fails (e.g. statement timeout), return null
-    console.warn(`[lock] Failed to acquire advisory lock ${key}:`, err);
+    logger.warn({ key: key.toString(), err }, "[lock] Failed to acquire advisory lock");
     return null;
   }
 }

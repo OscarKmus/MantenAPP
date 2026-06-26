@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useClientStore } from "@/stores/clients";
 import { useEquipmentStore } from "@/stores/equipment";
 import { useMaintenanceDraftStore } from "@/stores/maintenance-draft";
-import type { Equipment } from "@mantenti/types";
+
 
 const route = useRoute();
 const router = useRouter();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useActionTypeStore } from "@/stores/action-types";
 
 const props = defineProps<{

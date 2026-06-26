@@ -177,3 +177,131 @@ PR-A complete. Stacked-to-main: wait for user merge to main, then proceed with P
 ### Next Step
 
 PR-B complete. Stacked-to-main: proceed with PR-C (MEDIUM fixes — structured logging, count dedup, composite index, push subscription management, SW URL tightening, isLoading state, design drift fix, spec update).
+
+---
+
+## PR-C: MEDIUM Fixes
+
+### Summary
+
+| Field | Value |
+|-------|-------|
+| PR | PR-C (MEDIUM fixes) |
+| Branch | slice-6-1/pr-c |
+| Base | master (contains PR-A + PR-B) |
+| Total tasks (PR-C) | 8 |
+| Completed | 8 |
+| Pending | 0 |
+| Mode | Standard (no test runner) |
+| Delivery | chained (stacked-to-main) |
+| Chain strategy | stacked-to-main |
+| Review budget | ≤400 lines per PR |
+
+### Completed Tasks
+
+#### Phase 3: PR-C — MEDIUM Fixes
+
+- [x] M1 — `feat(api): add pino logger and migrate notifications services` (fc1dcdb)
+  - Created `apps/api/src/lib/logger.ts` with pino + pino-pretty transport in dev mode
+  - Replaced console.log/error/warn in `push.service.ts`, `cron.service.ts`, and `lock.ts`
+  - Structured logging with context objects (endpoint, created, skipped, err)
+  - Added `pino` and `pino-pretty` to api dependencies
+
+- [~] M2 — `fix(api): dedupe unread count in listForUser` (f03bfef) **REVERTED** in 212d460
+  - Original intent: `total` always counts ALL notifications, `unreadCount` always counts unread-only (single source of truth)
+  - **Reverted**: frontend never passes `unreadOnly=true` to `fetchNotifications` (only `pageNum`), so the M2 semantics change was not exercised. Keeping filter-coupled `total` (matches the standard pagination contract) avoids introducing a latent bug if a future "unread only" filter toggle is added.
+  - Final state: `count({ where })` — `total` reflects the current filter (parity with `findMany` skip/take).
+
+- [x] M3 — `chore(api): verify Notification composite index (userId, isRead, createdAt)` (67eb7de)
+  - Confirmed `@@index([userId, isRead, createdAt(sort: Desc)])` exists on Notification model
+  - No schema change needed — index was already in place from slice 6
+  - Verification-only commit (no-op)
+
+- [x] M4 — `feat(api,web): add GET/DELETE /api/push/subscriptions` (0bbd3dd)
+  - Added `listSubscriptions(userId)` returning id, endpoint, createdAt (no keys)
+  - Added `removeSubscription(userId, endpoint)` scoped to user
+  - Wired GET `/api/push/subscriptions` and DELETE `/api/push/subscriptions/:endpoint`
+  - Exposed `listSubscriptions()` and `removeSubscription()` in `usePushSubscription` composable
+
+- [x] M5 — `fix(sw): tighten URL match from includes to pathname check` (d3e59aa)
+  - Replaced `client.url.includes('/clients')` with URL pathname parsing
+  - Match exact `/clients` or `/clients/` prefix (prevents false positives)
+  - Wrapped in try/catch for robustness against invalid client URLs
+
+- [x] M6 — `feat(web): expose isLoading in usePushSubscription and wire to bell` (8320219)
+  - Added reactive `isLoading` ref, true during subscribe/unsubscribe async work
+  - Uses try/finally to guarantee reset on success or failure
+  - Wired to NotificationBell: `opacity-50`, `disabled`, `aria-busy` when loading
+
+- [x] M7 — `docs(slice-6): verify archived design.md has no drift` (45a76b6)
+  - Compared design.md file changes table against actual files: all match
+  - 'No schema migration required' was correct for slice 6 scope
+  - Verification-only commit (no-op)
+
+- [x] M8 — `docs(specs): extend notifications spec with PR-B/PR-C requirements` (9026f0a)
+  - Added Notification Preference Management requirement
+  - Added Notification Body Length Validation requirement
+  - Added Batched markAllRead requirement
+  - Added Structured Logging requirement
+  - Added Push Subscription Management requirement
+
+### Commits (PR-C)
+
+| # | Hash | Message |
+|---|------|---------|
+| 10 | fc1dcdb | feat(api): add pino logger and migrate notifications services |
+| 11 | f03bfef | fix(api): dedupe unread count in listForUser |
+| 12 | 67eb7de | chore(api): verify Notification composite index (userId, isRead, createdAt) |
+| 13 | 0bbd3dd | feat(api,web): add GET/DELETE /api/push/subscriptions |
+| 14 | d3e59aa | fix(sw): tighten URL match from includes to pathname check |
+| 15 | 8320219 | feat(web): expose isLoading in usePushSubscription and wire to bell |
+| 16 | 45a76b6 | docs(slice-6): verify archived design.md has no drift |
+| 17 | 9026f0a | docs(specs): extend notifications spec with PR-B/PR-C requirements |
+| 18 | 1a816c9 | docs(slice-6-1): update apply-progress and tasks for PR-C |
+| 19 | 42bef3c | fix(api): resolve pino type import and Express param typing |
+| 20 | 212d460 | Revert "fix(api): dedupe unread count in listForUser" |
+
+### Files Changed (PR-C)
+
+| File | Action | Commit | Description |
+|------|--------|--------|-------------|
+| `apps/api/src/lib/logger.ts` | Created | 10 | pino logger with pino-pretty dev transport |
+| `apps/api/package.json` | Modified | 10 | Added pino + pino-pretty deps |
+| `apps/api/src/services/notifications/push.service.ts` | Modified | 10, 13 | Logger migration + listSubscriptions/removeSubscription |
+| `apps/api/src/services/notifications/cron.service.ts` | Modified | 10 | Logger migration |
+| `apps/api/src/lib/lock.ts` | Modified | 10 | Logger migration |
+| `apps/api/src/modules/notifications/notifications.service.ts` | Modified | 11, 20 | Count dedup fix in listForUser (reverted in 20) |
+| `apps/api/src/services/notifications/push.controller.ts` | Modified | 13 | GET/DELETE /api/push/subscriptions routes |
+| `apps/web/src/composables/usePushSubscription.ts` | Modified | 13, 15 | listSubscriptions/removeSubscription + isLoading state |
+| `apps/web/public/sw.js` | Modified | 14 | URL match tightening |
+| `apps/web/src/components/layout/NotificationBell.vue` | Modified | 15 | isLoading wiring (opacity-50, disabled, aria-busy) |
+| `openspec/specs/notifications/spec.md` | Modified | 17 | New requirements for PR-B/PR-C work |
+
+### Build Results (PR-C)
+
+| Target | Result | Details |
+|--------|--------|---------|
+| `pnpm --filter web build` | ✅ PASS | Clean build, no errors |
+| `pnpm --filter api build` | ✅ PASS | Clean build, no errors |
+
+### Deviations from Design
+
+1. **M5 URL matching**: The tasks.md suggested `client.url.includes("/clients/")` (trailing slash). Implemented a more robust approach using `new URL(client.url).pathname` with exact `/clients` or `/clients/` prefix matching, plus try/catch for invalid URLs. Same security goal, better implementation.
+
+2. **M7 no-op**: The archived design.md had no real drift from the slice 6 implementation. The `NotificationPreference` model and body validation were PR-B additions (a different change scope), not slice 6. Verified and moved on.
+
+3. **M3 no-op**: The composite index `@@index([userId, isRead, createdAt(sort: Desc)])` was already present on the Notification model. Verified and moved on.
+
+### Risks / Notes
+
+1. **pino dependency size**: pino is lightweight (~5KB gzipped) but pino-pretty is heavier. pino-pretty is only loaded in dev mode via transport config — production bundle is unaffected.
+
+2. **`listForUser` count semantics (final, after revert)**: `total` reflects the current filter (filter-coupled). When `unreadOnly` is true, `total` returns the unread count and `unreadCount` returns the same value — this matches the standard pagination contract (`Math.ceil(total / limit)` pages). When `unreadOnly` is false/undefined, `total` returns the count of all notifications for the user. The M2 attempt to make `total` always filter-independent was reverted (commit 212d460) because (a) the frontend never sets `unreadOnly=true` in `fetchNotifications`, and (b) the original filter-coupled behavior is safer if a future "unread only" toggle is added.
+
+3. **DELETE /api/push/subscriptions/:endpoint**: The endpoint is URL-encoded in the path. The controller uses `decodeURIComponent()` to recover the original endpoint URL. Axios on the frontend uses `encodeURIComponent()`.
+
+4. **isLoading shared state**: Since `usePushSubscription` creates refs at module scope (not inside the composable function), `isLoading` is shared across all consumers. This matches the existing pattern for `isSupported`, `isSubscribed`, and `permission`.
+
+### Next Step
+
+PR-C complete (M2 reverted, see note above). Stacked-to-main: ready for verification (rebuild both apps with the revert, verify clean git status) and merge.

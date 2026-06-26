@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useInventoryStore } from "@/stores/inventory";
 import { useClientStore } from "@/stores/clients";
-import type { Equipment, Software, EquipmentStatus, LicenseType } from "@mantenti/types";
+import type { Equipment, EquipmentStatus, LicenseType } from "@mantenti/types";
 
 const router = useRouter();
 const inventoryStore = useInventoryStore();

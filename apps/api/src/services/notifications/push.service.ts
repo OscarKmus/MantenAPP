@@ -1,5 +1,6 @@
 import webPush from "web-push";
 import prisma from "../../lib/prisma";
+import logger from "../../lib/logger";
 import { getEnv } from "../../config/env";
 
 let vapidInitialized = false;
@@ -9,7 +10,7 @@ export function initVapid() {
 
   const env = getEnv();
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
-    console.warn("[push] VAPID keys not configured — push notifications disabled");
+    logger.warn("[push] VAPID keys not configured — push notifications disabled");
     return;
   }
 
@@ -19,7 +20,7 @@ export function initVapid() {
     env.VAPID_PRIVATE_KEY
   );
   vapidInitialized = true;
-  console.log("[push] VAPID initialized");
+  logger.info("[push] VAPID initialized");
 }
 
 export async function sendToUser(userId: string, payload: object) {
@@ -44,9 +45,9 @@ export async function sendToUser(userId: string, payload: object) {
         await prisma.pushSubscription.deleteMany({
           where: { endpoint: sub.endpoint },
         });
-        console.log(`[push] Removed stale subscription: ${sub.endpoint}`);
+        logger.info({ endpoint: sub.endpoint }, "[push] Removed stale subscription");
       } else {
-        console.error(`[push] Failed to send to ${sub.endpoint}:`, err);
+        logger.error({ endpoint: sub.endpoint, err }, "[push] Failed to send");
       }
     }
   }
@@ -71,8 +72,23 @@ export async function sendAll(payload: object) {
           where: { endpoint: sub.endpoint },
         });
       } else {
-        console.error(`[push] Failed to send to ${sub.endpoint}:`, err);
+        logger.error({ endpoint: sub.endpoint, err }, "[push] Failed to send");
       }
     }
   }
+}
+
+export async function listSubscriptions(userId: string) {
+  return prisma.pushSubscription.findMany({
+    where: { userId },
+    select: { id: true, endpoint: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function removeSubscription(userId: string, endpoint: string) {
+  const deleted = await prisma.pushSubscription.deleteMany({
+    where: { userId, endpoint },
+  });
+  return deleted.count > 0;
 }

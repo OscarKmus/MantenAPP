@@ -1,10 +1,9 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import multer from "multer";
-import { uploadAttachment, deleteAttachment, getAttachment, listAttachments } from "./attachments.service";
+import { uploadAttachment, deleteAttachment, listAttachments } from "./attachments.service";
 import { authMiddleware } from "../../middleware/auth";
 import { localStorage } from "../../services/storage/local.provider";
 import { createError } from "../../middleware/error-handler";
-import * as path from "path";
 
 export const attachmentsRouter: IRouter = Router();
 
@@ -115,9 +114,8 @@ attachmentsRouter.get(
       const storagePath = rawPath.replace(/^\/+/, "");
 
       // Resolve and validate path (LocalStorageProvider has traversal protection)
-      let fullPath: string;
       try {
-        fullPath = localStorage.resolvePath(storagePath);
+        localStorage.resolvePath(storagePath);
       } catch {
         throw createError(400, "Invalid file path");
       }

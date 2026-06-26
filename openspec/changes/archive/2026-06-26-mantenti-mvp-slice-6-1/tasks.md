@@ -84,43 +84,43 @@ Chain strategy: stacked-to-main
 ## Phase 3: PR-C — MEDIUM Fixes
 
 ### 3.1 Structured logging with pino
-- [ ] `apps/api/src/lib/logger.ts` (new) — `logger` export using pino, with dev-pretty mode if `NODE_ENV !== "production"`
-- [ ] `apps/api/src/services/notifications/cron.service.ts` — Replace `console.log` / `console.error` with `logger.info` / `logger.error`
-- [ ] `apps/api/src/services/notifications/push.service.ts` — Same replacement
-- [ ] `apps/api/src/modules/notifications/notifications.service.ts` — Same replacement (where applicable)
-- [ ] `apps/api/package.json` — Add `pino` + `pino-pretty` deps
+- [x] `apps/api/src/lib/logger.ts` (new) — `logger` export using pino, with dev-pretty mode if `NODE_ENV !== "production"`
+- [x] `apps/api/src/services/notifications/cron.service.ts` — Replace `console.log` / `console.error` with `logger.info` / `logger.error`
+- [x] `apps/api/src/services/notifications/push.service.ts` — Same replacement
+- [x] `apps/api/src/modules/notifications/notifications.service.ts` — Same replacement (where applicable)
+- [x] `apps/api/package.json` — Add `pino` + `pino-pretty` deps
 - Verify: Logs are JSON in prod, pretty in dev; structured fields like `{ module: "cron", created: 5, skipped: 2 }`
 
 ### 3.2 Dedupe COUNT in listForUser
-- [ ] `apps/api/src/modules/notifications/notifications.service.ts` — In `listForUser`, use a single query for `total` (where unreadOnly filter applied) and `unreadCount` (always where `userId + isRead=false`) — can use Prisma's groupBy or a `prisma.$queryRaw` with conditional aggregation
+- [x] `apps/api/src/modules/notifications/notifications.service.ts` — In `listForUser`, use a single query for `total` (where unreadOnly filter applied) and `unreadCount` (always where `userId + isRead=false`) — can use Prisma's groupBy or a `prisma.$queryRaw` with conditional aggregation
 - Verify: List endpoint still returns same shape; only 1 query for the counts (was 2)
 
 ### 3.3 Composite index on Notification
-- [ ] `apps/api/prisma/schema.prisma` — Add `@@index([userId, isRead, createdAt])` to `Notification` model
-- [ ] `apps/api/prisma/migrations/{timestamp}_notification_composite_index/` — generated migration
+- [x] `apps/api/prisma/schema.prisma` — Add `@@index([userId, isRead, createdAt])` to `Notification` model
+- [x] `apps/api/prisma/migrations/{timestamp}_notification_composite_index/` — generated migration
 - Verify: `EXPLAIN ANALYZE` on `listForUser` uses the new index; query plan shows index scan
 
 ### 3.4 GET/DELETE /api/push/subscriptions
-- [ ] `apps/api/src/services/notifications/push.controller.ts` — Add `GET /api/push/subscriptions` (returns user's subscriptions, excluding sensitive `keys`) and `DELETE /api/push/subscriptions/:id`
-- [ ] `apps/api/src/services/notifications/push.service.ts` — Add helper `listForUser(userId)` returning `id, endpoint, createdAt` (no keys)
-- [ ] `apps/web/src/composables/usePushSubscription.ts` — Expose `listSubscriptions()` and `removeSubscription(id)` methods
+- [x] `apps/api/src/services/notifications/push.controller.ts` — Add `GET /api/push/subscriptions` (returns user's subscriptions, excluding sensitive `keys`) and `DELETE /api/push/subscriptions/:id`
+- [x] `apps/api/src/services/notifications/push.service.ts` — Add helper `listForUser(userId)` returning `id, endpoint, createdAt` (no keys)
+- [x] `apps/web/src/composables/usePushSubscription.ts` — Expose `listSubscriptions()` and `removeSubscription(id)` methods
 - Verify: GET returns array of subscriptions; DELETE removes specific one; both require auth (401 without cookie)
 
 ### 3.5 SW URL match tightening
-- [ ] `apps/web/public/sw.js` — Change `client.url.includes("/clients")` to `client.url.includes("/clients/")` (note trailing slash)
+- [x] `apps/web/public/sw.js` — Change `client.url.includes("/clients")` to `client.url.includes("/clients/")` (note trailing slash)
 - Verify: SW only focuses windows on client detail pages, not arbitrary URLs containing "/clients" (e.g. hypothetical `/clients-archive`)
 
 ### 3.6 usePushSubscription isLoading state
-- [ ] `apps/web/src/composables/usePushSubscription.ts` — Add `isLoading: Ref<boolean>` that flips during `subscribe()` and `unsubscribe()` async ops
-- [ ] `apps/web/src/components/layout/NotificationBell.vue` — Use `usePushSubscription().isLoading` to show a small spinner next to the bell when a subscribe op is in flight
+- [x] `apps/web/src/composables/usePushSubscription.ts` — Add `isLoading: Ref<boolean>` that flips during `subscribe()` and `unsubscribe()` async ops
+- [x] `apps/web/src/components/layout/NotificationBell.vue` — Use `usePushSubscription().isLoading` to show a small spinner next to the bell when a subscribe op is in flight
 - Verify: Click "Subscribe to push" → spinner appears; click again → spinner hides when done
 
 ### 3.7 Slice 6 design drift fix
-- [ ] `openspec/changes/archive/2026-06-24-mantenti-mvp-slice-6/design.md` — Update the "File Changes" table to mention `NotificationsPage.vue` and `usePushSubscription.ts` (which were created in slice 6 but not in the original design)
+- [x] `openspec/changes/archive/2026-06-24-mantenti-mvp-slice-6/design.md` — Update the "File Changes" table to mention `NotificationsPage.vue` and `usePushSubscription.ts` (which were created in slice 6 but not in the original design)
 - Verify: Reading the design.md now reflects the actual implementation
 
 ### 3.8 Notifications spec update
-- [ ] `openspec/specs/notifications/spec.md` — Add new requirements: `NotificationPreference`, `GET/DELETE /api/push/subscriptions`, `pushsubscriptionchange` handling, structured logging, composite index, length validation, batching
+- [x] `openspec/specs/notifications/spec.md` — Add new requirements: `NotificationPreference`, `GET/DELETE /api/push/subscriptions`, `pushsubscriptionchange` handling, structured logging, composite index, length validation, batching
 - Verify: Spec reflects all PR-A, PR-B, PR-C changes
 
 ## Phase 4: Verification per PR

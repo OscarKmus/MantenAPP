@@ -21,7 +21,6 @@ import {
 } from "../../services/pdf/pdf.service";
 import { validate } from "../../middleware/validate";
 import { authMiddleware } from "../../middleware/auth";
-import * as path from "path";
 
 export const maintenancesRouter: IRouter = Router();
 
@@ -139,7 +138,7 @@ maintenancesRouter.post(
 // GET /api/maintenances/:id/pdf — download the generated PDF
 maintenancesRouter.get(
   "/:id/pdf",
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, _next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
       const filePath = await getMaintenancePdfPath(id);
@@ -161,7 +160,7 @@ maintenancesRouter.get(
 // POST /api/maintenances/:id/pdf/regenerate — force PDF regeneration
 maintenancesRouter.post(
   "/:id/pdf/regenerate",
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, _next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
       const result = await regenerateMaintenancePdf(id);

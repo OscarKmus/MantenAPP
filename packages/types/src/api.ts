@@ -1,7 +1,7 @@
 import type {
   User, Client, Equipment, Maintenance, MaintenanceItem, Attachment,
-  ActionType, Template, TemplateItem, Notification,
-  EquipmentCategory, Software, InventoryItem,
+  ActionType, Template, Notification,
+  EquipmentCategory, Software,
 } from "./models";
 
 // ─── Auth ───────────────────────────────────────────────
