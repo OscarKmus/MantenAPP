@@ -11,6 +11,13 @@ export async function listForUser(userId: string, params: ListNotificationsQuery
     ...(unreadOnly ? { isRead: false } : {}),
   };
 
+  // `total` is intentionally filter-coupled (count({ where })) to match the
+  // standard pagination contract: `Math.ceil(total / limit)` pages under the
+  // current filter. Reverted from a "filter-independent total" attempt in
+  // commit 212d460 — the frontend never passes `unreadOnly=true` in
+  // `fetchNotifications`, and filter-coupled semantics are safer if a future
+  // "unread only" toggle is added (otherwise `total` and the rendered list
+  // would be out of sync). `unreadCount` remains filter-independent.
   const [notifications, total, unreadCount] = await Promise.all([
     prisma.notification.findMany({
       where,
