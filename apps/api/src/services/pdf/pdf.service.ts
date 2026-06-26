@@ -209,6 +209,14 @@ export async function generateMaintenancePdf(
   const pdfFullPath = path.join(pdfDir, pdfFilename);
 
   await new Promise<void>((resolve, reject) => {
+    // `bufferPages: true` defers final page rendering until `doc.end()` is
+    // called. We use this so we can `flushPages()` at the end and apply
+    // per-page header/footer adjustments (e.g. signature line, page number)
+    // across all generated pages in a single pass. Current Y position is
+    // tracked manually per page via the `pageAdded` event — we do NOT use
+    // `switchToPage(0)` (the original commit message referenced a
+    // non-existent call). This pattern fixes the PDFKit crash on
+    // `closeMaintenance` when generating multi-page reports.
     const doc = new PDFDocument({
       size: "A4",
       margin: 50,
