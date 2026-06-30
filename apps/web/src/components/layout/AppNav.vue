@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 defineProps<{
   open: boolean;
@@ -10,6 +11,7 @@ defineEmits<{
 }>();
 
 const route = useRoute();
+const auth = useAuthStore();
 
 const navItems = [
   {
@@ -21,6 +23,12 @@ const navItems = [
     name: "Inventario",
     to: "/inventory",
     icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+  },
+  {
+    name: "Usuarios",
+    to: "/admin/users",
+    icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zM12 7a4 4 0 11-8 0 4 4 0 018 0z",
+    adminOnly: true,
   },
 ];
 
@@ -47,7 +55,7 @@ function isActive(to: string) {
     <nav class="flex flex-col h-full pt-4 pb-4">
       <div class="flex-1 px-3 space-y-1">
         <router-link
-          v-for="item in navItems"
+          v-for="item in navItems.filter((i) => !i.adminOnly || auth.isAdmin)"
           :key="item.to"
           :to="item.to"
           :class="[

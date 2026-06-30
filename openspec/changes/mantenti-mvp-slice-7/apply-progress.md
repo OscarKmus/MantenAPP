@@ -187,3 +187,115 @@ Awaiting merge confirmation. After merge, proceed to PR-B (guard DELETE endpoint
 ### Next Step
 
 Awaiting merge confirmation. After merge, proceed to PR-C (frontend role-aware UI).
+
+---
+
+## PR-C: 2026-06-30 — completed
+
+### Branch
+`slice-7/pr-c` (based on `master` at `108c478`, PR-A + PR-B merged)
+
+### Commits
+
+| # | Hash | Message |
+|---|------|---------|
+| 1 | `eaedee9` | `feat(auth-store): add role helpers (isAdmin, canEdit, canDelete) and useAuth composable` |
+| 2 | `dae54cb` | `feat(views): gate delete and edit buttons by role in views and shared components` |
+| 3 | `33dc038` | `feat(components): gate delete buttons by role in shared components` |
+| 4 | `5a627b8` | `feat(admin): add user management page, users store, admin nav, and router guard` |
+| 5 | `f2c1d21` | `fix(types): add createdById to domain models and fix dynamic import in UserCreateForm` |
+
+### Files Changed
+
+**Auth Store & Composable**
+- `apps/web/src/stores/auth.ts` — Added `role`, `isAdmin` computeds, `canEdit(resource)`, `canDelete()` functions
+- `apps/web/src/composables/useAuth.ts` — New composable wrapping auth store with role helpers
+
+**Shared Types**
+- `packages/types/src/models.ts` — Added `createdById: string | null` to Client, Equipment, Software, Template, Attachment interfaces
+
+**Views with v-if guards**
+- `apps/web/src/views/ClientListPage.vue` — Gated "Nuevo cliente" button and empty-state create button with `v-if="auth.isAdmin"`
+- `apps/web/src/views/ClientDetailPage.vue` — Gated "Editar" button with `v-if="auth.canEdit(client)"`, "Eliminar" button with `v-if="auth.isAdmin"`, software edit/delete buttons similarly
+- `apps/web/src/views/MaintenanceFlowPage.vue` — Passed `:is-admin="auth.isAdmin"` to ItemCard, `:can-remove="auth.isAdmin"` to PhotoUpload
+
+**Components with v-if guards**
+- `apps/web/src/components/clients/ClientCard.vue` — Gated delete menu item with `v-if="auth.isAdmin"`
+- `apps/web/src/components/equipment/EquipmentList.vue` — Gated delete button with `v-if="auth.isAdmin"`
+- `apps/web/src/components/equipment/EquipmentForm.vue` — Gated category create (+) button, gear icon (category manager), and edit/delete buttons inside category manager modal with `v-if="auth.isAdmin"`
+- `apps/web/src/components/maintenance/PhotoUpload.vue` — Added `canRemove` prop; remove button gated by `canRemove !== false`
+- `apps/web/src/components/maintenance/ItemCard.vue` — Added `isAdmin` prop; added remove button gated by `isAdmin`; passed `canRemove` to PhotoUpload
+
+**Admin User Management (new)**
+- `apps/web/src/stores/users.ts` — New Pinia store: `fetchUsers()`, `createUser()`, `updateUserRole()`, `deleteUser()`
+- `apps/web/src/components/admin/UserList.vue` — User list with role badges, role change dropdown, delete button
+- `apps/web/src/components/admin/UserCreateForm.vue` — Create form with username, password, fullName, role select
+- `apps/web/src/views/AdminUsersPage.vue` — Page composing UserList + UserCreateForm, error handling for LAST_ADMIN
+
+**Router & Navigation**
+- `apps/web/src/router/index.ts` — Added `/admin/users` route with `meta: { requiresAdmin: true }`; added `requiresAdmin` guard in `beforeEach`
+- `apps/web/src/components/layout/AppNav.vue` — Added "Usuarios" nav item with `adminOnly: true`; filtered by `auth.isAdmin`
+
+### Build Results
+
+- `pnpm --filter api build`: **ok** — clean TypeScript compilation
+- `pnpm --filter web build`: **ok** — vue-tsc + vite build clean
+
+### Components Gated (v-if applied)
+
+| Component/View | What was gated | Condition |
+|----------------|---------------|-----------|
+| `ClientListPage.vue` | "Nuevo cliente" button | `v-if="auth.isAdmin"` |
+| `ClientListPage.vue` | Empty-state "Crear primer cliente" button | `v-if="auth.isAdmin"` |
+| `ClientDetailPage.vue` | "Editar" client button | `v-if="auth.canEdit(client)"` |
+| `ClientDetailPage.vue` | "Eliminar" client button | `v-if="auth.isAdmin"` |
+| `ClientDetailPage.vue` | Software edit button | `v-if="auth.canEdit(sw)"` |
+| `ClientDetailPage.vue` | Software delete button | `v-if="auth.isAdmin"` |
+| `ClientCard.vue` | Delete menu item | `v-if="auth.isAdmin"` |
+| `EquipmentList.vue` | Delete button per equipment | `v-if="auth.isAdmin"` |
+| `EquipmentForm.vue` | Create category (+) button | `v-if="auth.isAdmin"` |
+| `EquipmentForm.vue` | Gear icon (category manager) | `v-if="auth.isAdmin"` |
+| `EquipmentForm.vue` | Edit category button in modal | `v-if="auth.isAdmin"` |
+| `EquipmentForm.vue` | Delete category button in modal | `v-if="auth.isAdmin"` |
+| `ItemCard.vue` | Remove item button (new) | `v-if="isAdmin"` (via prop) |
+| `PhotoUpload.vue` | Remove attachment button | `canRemove` prop (defaults true) |
+| `MaintenanceFlowPage.vue` | General photo remove | `:can-remove="auth.isAdmin"` |
+| `AppNav.vue` | "Usuarios" nav item | `adminOnly` filtered by `auth.isAdmin` |
+
+### Verification Notes
+
+**Build fixes applied during implementation:**
+1. `Client` type missing `createdById` field (PR-A added it to schema but not to frontend types) → added `createdById: string | null` to Client, Equipment, Software, Template, Attachment interfaces
+2. Dynamic import of `useUsersStore` in `UserCreateForm.vue` caused vite chunk warning → changed to static import
+
+### Manual Smoke Test Plan (for orchestrator)
+
+1. Login as USER → no delete buttons visible in any component (ClientCard, ClientDetailPage, EquipmentList, EquipmentForm, MaintenanceFlowPage)
+2. Login as USER → no "Nuevo cliente" button visible
+3. Login as USER → no admin nav link ("Usuarios") visible
+4. Login as USER → try to navigate to `/admin/users` manually → redirected to `/clients`
+5. Login as ADMIN → delete buttons visible everywhere
+6. Login as ADMIN → "Nuevo cliente" button visible
+7. Login as ADMIN → "Usuarios" nav item visible
+8. Login as ADMIN → `/admin/users` shows user list
+9. Login as ADMIN → create a USER via form → 201, appears in list
+10. Login as ADMIN → change a USER's role to ADMIN via dropdown → 200
+11. Login as ADMIN → try to demote self (last admin) → error "No se puede cambiar el rol del último administrador"
+12. Login as ADMIN → delete a non-admin USER → 200, removed from list
+13. Login as ADMIN → try to delete self → blocked by backend (self-deletion guard)
+14. Login as ADMIN → EquipmentForm category manager: gear icon, create button, edit/delete buttons inside modal all visible
+15. Login as USER → EquipmentForm: no gear icon, no create category button visible
+
+### Notes for Orchestrator
+
+- **createdById type gap fixed**: PR-A added `createdById` to the Prisma schema but didn't update the TypeScript types in `packages/types`. This PR fixes that — `Client`, `Equipment`, `Software`, `Template`, `Attachment` all now have `createdById: string | null`.
+- **canEdit logic**: `canEdit(resource)` returns true if ADMIN, or if `resource.createdById === currentUser.id` or `resource.technicianId === currentUser.id`. This covers the maintenance ownership case (technicianId) and the general ownership case (createdById).
+- **canDelete is ADMIN-only**: Per spec, USER can never delete. `canDelete()` simply returns `isAdmin`.
+- **PhotoUpload canRemove prop**: Added a new `canRemove` prop (defaults to `true` for backward compatibility) to separately gate the remove button without affecting the upload dropzone. This allows non-admins to still upload photos but not remove them.
+- **ItemCard remove button**: Added a remove button to ItemCard (was missing from template despite having the emit). Gated by `isAdmin` prop.
+- **Admin page error handling**: Displays `{ error: { code, message } }` from the new middleware. LAST_ADMIN errors show a user-friendly Spanish message.
+- **Router guard**: `/admin/users` route redirects to `/clients` if user is not ADMIN.
+
+### Next Step
+
+Awaiting merge confirmation. This is the last PR for slice 7. After merge, proceed to sdd-verify and sdd-archive.

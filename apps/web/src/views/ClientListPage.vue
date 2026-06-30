@@ -2,11 +2,13 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useClientStore } from "@/stores/clients";
+import { useAuthStore } from "@/stores/auth";
 import ClientCard from "@/components/clients/ClientCard.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
 
 const router = useRouter();
 const store = useClientStore();
+const auth = useAuthStore();
 
 const showCreateModal = ref(false);
 
@@ -47,6 +49,7 @@ async function handleDelete(id: string) {
         <p class="text-sm text-slate-500 mt-1">Gestiona tus clientes y su mantenimiento</p>
       </div>
       <button
+        v-if="auth.isAdmin"
         class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold
                rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2
                focus:ring-primary-500 focus:ring-offset-2 transition-colors"
@@ -130,7 +133,7 @@ async function handleDelete(id: string) {
         }}
       </p>
       <button
-        v-if="!store.searchQuery"
+        v-if="!store.searchQuery && auth.isAdmin"
         class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold
                rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
         @click="showCreateModal = true"

@@ -50,6 +50,12 @@ const router = createRouter({
       component: () => import("@/views/NotificationsPage.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/admin/users",
+      name: "admin-users",
+      component: () => import("@/views/AdminUsersPage.vue"),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 });
 
@@ -63,6 +69,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && !auth.user) {
     return { name: "login" };
+  }
+
+  if (to.meta.requiresAdmin && auth.user?.role !== "ADMIN") {
+    return { name: "clients" };
   }
 
   if (to.meta.guest && auth.user) {

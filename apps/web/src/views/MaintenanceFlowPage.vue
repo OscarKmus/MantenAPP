@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useMaintenanceDraftStore } from "@/stores/maintenance-draft";
+import { useAuthStore } from "@/stores/auth";
 import StepIndicator from "@/components/maintenance/StepIndicator.vue";
 import ItemCard from "@/components/maintenance/ItemCard.vue";
 import PhotoUpload from "@/components/maintenance/PhotoUpload.vue";
@@ -11,6 +12,7 @@ import PdfStatus from "@/components/maintenance/PdfStatus.vue";
 const route = useRoute();
 const router = useRouter();
 const draftStore = useMaintenanceDraftStore();
+const auth = useAuthStore();
 
 const maintenanceId = computed(() => route.params.id as string);
 
@@ -244,6 +246,7 @@ function handleGoToStep(step: number) {
           :item="activeItem"
           :item-attachments="draftStore.getItemAttachments(activeItem.id)"
           :is-active="true"
+          :is-admin="auth.isAdmin"
           @update="handleUpdateItem"
           @remove="handleRemoveItem"
           @upload-photo="handleItemPhotoUpload"
@@ -336,6 +339,7 @@ function handleGoToStep(step: number) {
           <PhotoUpload
             :attachments="maintenanceAttachments"
             :max-files="10"
+            :can-remove="auth.isAdmin"
             @upload="handleGeneralPhotoUpload"
             @remove="handleGeneralPhotoRemove"
           />

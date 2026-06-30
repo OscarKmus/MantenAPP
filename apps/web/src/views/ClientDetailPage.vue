@@ -3,6 +3,7 @@ import { onMounted, ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useClientStore } from "@/stores/clients";
 import { useEquipmentStore } from "@/stores/equipment";
+import { useAuthStore } from "@/stores/auth";
 import EquipmentList from "@/components/equipment/EquipmentList.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
 import PdfStatus from "@/components/maintenance/PdfStatus.vue";
@@ -14,6 +15,7 @@ const route = useRoute();
 const router = useRouter();
 const clientStore = useClientStore();
 const equipmentStore = useEquipmentStore();
+const auth = useAuthStore();
 
 const activeTab = ref("resumen");
 const showEditModal = ref(false);
@@ -299,6 +301,7 @@ const nextMaintenanceDisplay = computed(() => {
           </p>
         </div>
         <button
+          v-if="auth.canEdit(client)"
           class="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 text-sm
                  font-medium rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
           @click="showEditModal = true"
@@ -309,6 +312,7 @@ const nextMaintenanceDisplay = computed(() => {
           Editar
         </button>
         <button
+          v-if="auth.isAdmin"
           class="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-700 text-sm
                  font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
           title="Eliminar cliente"
@@ -564,6 +568,7 @@ const nextMaintenanceDisplay = computed(() => {
               <!-- Actions -->
               <div class="flex items-center gap-1 shrink-0">
                 <button
+                  v-if="auth.canEdit(sw as any)"
                   class="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50
                          focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
                   title="Editar"
@@ -574,6 +579,7 @@ const nextMaintenanceDisplay = computed(() => {
                   </svg>
                 </button>
                 <button
+                  v-if="auth.isAdmin"
                   class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50
                          focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
                   title="Eliminar"

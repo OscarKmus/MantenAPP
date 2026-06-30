@@ -6,6 +6,7 @@ const props = defineProps<{
   attachments: Array<{ id: string; fileName: string; mimeType: string; storagePath?: string }>;
   maxFiles?: number;
   disabled?: boolean;
+  canRemove?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -200,7 +201,7 @@ async function processFiles(files: File[]) {
           loading="lazy"
         />
         <button
-          v-if="!disabled"
+          v-if="!disabled && (canRemove !== false)"
           class="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white opacity-0
                  group-hover:opacity-100 transition-opacity focus:opacity-100
                  focus:outline-none focus:ring-2 focus:ring-red-500"
