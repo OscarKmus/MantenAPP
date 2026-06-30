@@ -86,7 +86,7 @@ async function assertNotLastAdmin(userId: string, newRole?: UserRole): Promise<v
     const adminCount = await tx.user.count({ where: { role: "ADMIN" } });
 
     if (adminCount <= 1) {
-      throw createError(409, "Cannot remove the last admin");
+      throw createError(403, "Cannot remove the last admin", "LAST_ADMIN");
     }
   });
 }
