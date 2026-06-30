@@ -33,7 +33,8 @@ usersRouter.post("/", validate(createUserSchema), async (req: Request, res: Resp
 // PATCH /api/users/:id/role
 usersRouter.patch("/:id/role", validate(updateUserRoleSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await updateUserRole(req.params.id, req.body.role, req.user!.userId);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const user = await updateUserRole(id, req.body.role, req.user!.userId);
     res.json({ user });
   } catch (error) {
     next(error);
@@ -43,7 +44,8 @@ usersRouter.patch("/:id/role", validate(updateUserRoleSchema), async (req: Reque
 // DELETE /api/users/:id
 usersRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await deleteUser(req.params.id, req.user!.userId);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    await deleteUser(id, req.user!.userId);
     res.status(204).send();
   } catch (error) {
     next(error);

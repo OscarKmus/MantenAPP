@@ -66,7 +66,7 @@ authRouter.post("/refresh", async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const result = refresh(refreshToken);
+    const result = await refresh(refreshToken);
 
     res
       .cookie("accessToken", result.accessToken, ACCESS_COOKIE_OPTIONS)
