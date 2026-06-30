@@ -52,7 +52,7 @@ function isSelf(userId: string): boolean {
           <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', ROLE_COLORS[user.role]]">
             {{ ROLE_LABELS[user.role] || user.role }}
           </span>
-          <span v-if="isSelf(user.id)" class="text-xs text-slate-400">(vos)</span>
+          <span v-if="isSelf(user.id)" class="text-xs text-slate-400">(tú)</span>
         </div>
         <p class="text-sm text-slate-500">{{ user.fullName }}</p>
       </div>
@@ -61,8 +61,10 @@ function isSelf(userId: string): boolean {
         <!-- Role change dropdown -->
         <select
           :value="user.role"
+          :disabled="isSelf(user.id)"
           class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm
-                 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                 focus:outline-none focus:ring-2 focus:ring-primary-500
+                 disabled:opacity-50 disabled:cursor-not-allowed"
           @change="handleRoleChange(user.id, $event)"
         >
           <option value="USER">Técnico</option>
