@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import type { UserRole } from "@mantenti/types";
+import { useUsersStore } from "@/stores/users";
 
 const emit = defineEmits<{
   created: [];
@@ -9,6 +10,8 @@ const emit = defineEmits<{
 const props = defineProps<{
   loading?: boolean;
 }>();
+
+const usersStore = useUsersStore();
 
 const form = ref({
   username: "",
@@ -45,9 +48,7 @@ async function handleSubmit() {
   if (!validate()) return;
 
   try {
-    const { useUsersStore } = await import("@/stores/users");
-    const store = useUsersStore();
-    await store.createUser({
+    await usersStore.createUser({
       username: form.value.username.trim(),
       password: form.value.password,
       fullName: form.value.fullName.trim(),

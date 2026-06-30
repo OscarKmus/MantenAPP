@@ -42,6 +42,7 @@ export interface Client {
   nextMaintenanceBaseAt: string | null;
   nextMaintenanceAgreedAt: string | null;
   nextMaintenanceAt: string | null;
+  createdById: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +61,7 @@ export interface Equipment {
   ram: string | null;
   disk: string | null;
   status: EquipmentStatus;
+  createdById: string | null;
   createdAt: string;
   updatedAt: string;
   category?: EquipmentCategory | null;
@@ -109,6 +111,7 @@ export interface Attachment {
   mimeType: string;
   sizeBytes: number;
   storagePath: string;
+  createdById: string | null;
   createdAt: string;
 }
 
@@ -117,6 +120,7 @@ export interface Template {
   clientId: string;
   name: string;
   description: string | null;
+  createdById: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -168,6 +172,7 @@ export interface Software {
   equipmentId: string | null;
   expiresAt: string;
   notes: string | null;
+  createdById: string | null;
   createdAt: string;
   updatedAt: string;
 }
