@@ -7,14 +7,12 @@ export async function listSoftware(filters: {
   clientId?: string;
   equipmentId?: string;
   licenseType?: LicenseType;
-  userId?: string;
 }) {
   const where: Record<string, unknown> = {};
 
   if (filters.clientId) where.clientId = filters.clientId;
   if (filters.equipmentId) where.equipmentId = filters.equipmentId;
   if (filters.licenseType) where.licenseType = filters.licenseType;
-  if (filters.userId) where.createdById = filters.userId;
 
   return prisma.software.findMany({
     where,

@@ -24,8 +24,7 @@ equipmentRouter.get(
     try {
       const clientId = getParam(req.params.clientId);
       const { status } = req.query as { status?: EquipmentStatus };
-      const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
-      const equipment = await listEquipment(clientId, status, userId);
+      const equipment = await listEquipment(clientId, status);
       res.json({ equipment });
     } catch (error) {
       next(error);

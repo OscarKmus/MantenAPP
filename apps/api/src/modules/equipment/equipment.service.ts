@@ -4,7 +4,7 @@ import { localStorage } from "../../services/storage/local.provider";
 import type { CreateEquipmentInput, UpdateEquipmentInput } from "./equipment.schema";
 import type { EquipmentStatus } from "@mantenti/types";
 
-export async function listEquipment(clientId: string, status?: EquipmentStatus, userId?: string) {
+export async function listEquipment(clientId: string, status?: EquipmentStatus) {
   // Verify client exists
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -15,10 +15,6 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus, 
   if (status) {
     where.status = status;
   }
-  if (userId) {
-    where.createdById = userId;
-  }
-
   return prisma.equipment.findMany({
     where,
     orderBy: { name: "asc" },

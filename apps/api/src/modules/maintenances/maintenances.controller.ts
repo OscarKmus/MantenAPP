@@ -196,8 +196,7 @@ maintenancesRouter.get(
       const clientId = getParam(req.params.clientId);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
-      const result = await listClientMaintenances(clientId, page, limit, undefined, userId);
+      const result = await listClientMaintenances(clientId, page, limit, undefined);
       res.json(result);
     } catch (error) {
       next(error);

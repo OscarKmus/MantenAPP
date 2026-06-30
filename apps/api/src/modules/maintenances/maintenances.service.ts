@@ -300,7 +300,6 @@ export async function listClientMaintenances(
   page: number = 1,
   limit: number = 20,
   status?: string,
-  userId?: string
 ) {
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -312,10 +311,6 @@ export async function listClientMaintenances(
     clientId,
     ...(status ? { status: status as "DRAFT" | "IN_PROGRESS" | "CLOSED" } : {}),
   };
-  if (userId) {
-    where.technicianId = userId;
-  }
-
   const [maintenances, total] = await Promise.all([
     prisma.maintenance.findMany({
       where,

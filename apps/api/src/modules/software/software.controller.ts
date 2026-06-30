@@ -29,8 +29,7 @@ softwareRouter.get(
         equipmentId?: string;
         licenseType?: LicenseType;
       };
-      const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
-      const software = await listSoftware({ clientId, equipmentId, licenseType, userId });
+      const software = await listSoftware({ clientId, equipmentId, licenseType });
       res.json({ software });
     } catch (error) {
       next(error);

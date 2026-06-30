@@ -11,16 +11,12 @@ function computeEffectiveDate(
   return manualOverride ?? agreedAt ?? baseAt;
 }
 
-export async function listClients(query?: string, userId?: string) {
+export async function listClients(query?: string) {
   const where: Record<string, unknown> = query
     ? {
         name: { contains: query, mode: "insensitive" as const },
       }
     : {};
-
-  if (userId) {
-    where.createdById = userId;
-  }
 
   const clients = await prisma.client.findMany({
     where,
