@@ -1,5 +1,7 @@
 // ─── Enums ──────────────────────────────────────────────
 
+export type UserRole = "USER" | "ADMIN";
+
 export type EquipmentStatus =
   | "ACTIVE"
   | "INACTIVE"
@@ -24,6 +26,7 @@ export interface User {
   id: string;
   username: string;
   fullName: string;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }

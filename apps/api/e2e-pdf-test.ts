@@ -181,24 +181,13 @@ function concatenateDecodedStrings(strings: string[]): string {
 async function main() {
   console.log("=== PDF Generation E2E Test ===\n");
 
-  // Step 1: Login
+  // Step 1: Login as seed admin (must exist from seed)
   console.log("1. Logging in...");
-  try {
-    await api("POST", "/auth/login", {
-      username: "admin",
-      password: "admin123",
-    });
-    console.log("   ✓ Logged in as admin");
-  } catch (e: any) {
-    console.log("   Login failed, trying to register...");
-    await api("POST", "/auth/register", {
-      username: "admin",
-      password: "admin123",
-      fullName: "Admin Test",
-      role: "ADMIN",
-    });
-    console.log("   ✓ Registered and logged in");
-  }
+  await api("POST", "/auth/login", {
+    username: "admin",
+    password: "admin123",
+  });
+  console.log("   ✓ Logged in as admin");
 
   // Step 2: Create client
   console.log("\n2. Creating test client...");

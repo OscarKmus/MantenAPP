@@ -14,6 +14,7 @@ async function main() {
       username: "admin",
       passwordHash: defaultPasswordHash,
       fullName: "Admin Técnico",
+      role: "ADMIN",
     },
   });
 

@@ -8,17 +8,30 @@ datasource db {
 }
 
 // ─── Users ───────────────────────────────────────────────
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id           String   @id @default(uuid())
   username     String   @unique
   passwordHash String   @map("password_hash")
   fullName     String   @map("full_name")
+  role         UserRole @default(USER)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   maintenances Maintenance[]
   notifications Notification[]
   notificationPreferences NotificationPreference[]
+
+  // Reverse relations for createdById ownership
+  createdClients     Client[]
+  createdEquipment   Equipment[]
+  createdSoftware    Software[]
+  createdTemplates   Template[]
+  createdAttachments Attachment[]
 
   @@map("users")
 }
@@ -38,11 +51,15 @@ model Client {
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
 
+  createdById  String?   @map("created_by_id")
+  createdBy    User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   equipment    Equipment[]
   maintenances Maintenance[]
   templates    Template[]
   software     Software[]
 
+  @@index([createdById])
   @@index([nextMaintenanceAt])
   @@map("clients")
 }
@@ -81,6 +98,9 @@ model Equipment {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
+  createdById     String?         @map("created_by_id")
+  createdBy       User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   client           Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   category         EquipmentCategory?   @relation(fields: [categoryId], references: [id])
   software         Software?            @relation("EquipmentSoftware", fields: [softwareId], references: [id], onDelete: SetNull)
@@ -91,6 +111,7 @@ model Equipment {
   @@index([clientId])
   @@index([categoryId])
   @@index([softwareId])
+  @@index([createdById])
   @@map("equipment")
 }
 
@@ -122,12 +143,16 @@ model Software {
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
+  createdById String?     @map("created_by_id")
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   equipment    Equipment?  @relation("SoftwareEquipment", fields: [equipmentId], references: [id], onDelete: SetNull)
   installedOn  Equipment[] @relation("EquipmentSoftware")
 
   @@index([clientId])
   @@index([equipmentId])
+  @@index([createdById])
   @@map("software")
 }
 
@@ -205,7 +230,11 @@ model Attachment {
   storagePath String           @map("storage_path")
   createdAt   DateTime         @default(now()) @map("created_at")
 
+  createdById String?          @map("created_by_id")
+  createdBy   User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   @@index([scope, parentId])
+  @@index([createdById])
   @@map("attachments")
 }
 
@@ -223,10 +252,14 @@ model Template {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   client Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   items  TemplateItem[]
 
   @@unique([clientId, name])
+  @@index([createdById])
   @@map("templates")
 }
 
