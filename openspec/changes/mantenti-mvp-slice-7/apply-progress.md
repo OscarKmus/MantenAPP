@@ -90,3 +90,100 @@
 ### Next Step
 
 Awaiting merge confirmation. After merge, proceed to PR-B (guard DELETE endpoints + ownership checks).
+
+---
+
+## PR-B: 2026-06-30 — completed
+
+### Branch
+`slice-7/pr-b` (based on `master` at `22e84ff`, PR-A merged)
+
+### Commits
+
+| # | Hash | Message |
+|---|------|---------|
+| 1 | `1b65812` | `feat(clients): add admin-only delete, ownership check on update, list filter` |
+| 2 | `3b6f45e` | `feat(equipment): add admin-only delete, ownership check on update, list filter` |
+| 3 | `8005c1f` | `feat(software): add admin-only delete and ownership check on update` |
+| 4 | `6b63fcf` | `feat(templates): add admin-only delete and ownership check on update` |
+| 5 | `c0b47ad` | `feat(attachments): add admin-only delete guard` |
+| 6 | `b4696fe` | `feat(maintenances): add admin-only item delete and technician ownership check` |
+| 7 | `83107cd` | `feat(action-types): admin-only write operations` |
+| 8 | `b6c36fe` | `feat(equipment-categories): admin-only write operations` |
+
+### Files Changed
+
+**clients module**
+- `apps/api/src/modules/clients/clients.service.ts` — `listClients` accepts optional `userId` param for scoping; `createClient` accepts optional `createdById` and passes it to Prisma create
+- `apps/api/src/modules/clients/clients.controller.ts` — Added imports for `requireRole`, `requireOwnershipOrAdmin`, `prisma`; GET filters by `createdById` for USER; POST passes `req.user.userId` as `createdById`; PATCH wrapped with `requireOwnershipOrAdmin` checking `createdById`; DELETE wrapped with `requireRole("ADMIN")`
+
+**equipment module**
+- `apps/api/src/modules/equipment/equipment.service.ts` — `listEquipment` accepts optional `userId` for scoping; `createEquipment` accepts optional `createdById`
+- `apps/api/src/modules/equipment/equipment.controller.ts` — Same guard pattern as clients: list filter, ownership check on PATCH, admin-only DELETE, createdById on POST
+
+**software module**
+- `apps/api/src/modules/software/software.service.ts` — `createSoftware` accepts optional `createdById`; `listSoftware` accepts optional `userId` filter
+- `apps/api/src/modules/software/software.controller.ts` — Same guard pattern; GET list passes userId for USER scoping
+
+**templates module**
+- `apps/api/src/modules/templates/templates.service.ts` — `createTemplate` accepts optional `createdById`
+- `apps/api/src/modules/templates/templates.controller.ts` — Same guard pattern: ownership on PATCH, admin-only DELETE, createdById on POST
+
+**attachments module**
+- `apps/api/src/modules/attachments/attachments.controller.ts` — Added `requireRole` import; DELETE wrapped with `requireRole("ADMIN")`
+
+**maintenances module**
+- `apps/api/src/modules/maintenances/maintenances.service.ts` — `listClientMaintenances` accepts optional `userId` param, filters by `technicianId` when present
+- `apps/api/src/modules/maintenances/maintenances.controller.ts` — Added imports for `requireRole`, `requireOwnershipOrAdmin`, `prisma`; PATCH wrapped with `requireOwnershipOrAdmin` checking `technicianId`; DELETE item wrapped with `requireRole("ADMIN")`; close wrapped with `requireOwnershipOrAdmin` checking `technicianId`; list filters by `technicianId` for USER
+
+**action-types module**
+- `apps/api/src/modules/action-types/action-types.controller.ts` — Added `requireRole` import; POST, PATCH, DELETE wrapped with `requireRole("ADMIN")`
+
+**equipment-categories module**
+- `apps/api/src/modules/equipment-categories/equipment-categories.controller.ts` — Added `requireRole` import; POST, PATCH, DELETE wrapped with `requireRole("ADMIN")`
+
+**push module** — No changes needed. DELETE subscription already scoped by `req.user.userId`.
+
+**notifications module** — No changes needed. No DELETE endpoints exist.
+
+**bulk-delete** — No bulk-delete endpoint found (deferred from slice 6-1). No action taken.
+
+### Build Results
+
+- `pnpm --filter api build`: **ok** — clean TypeScript compilation
+- `pnpm --filter web build`: **ok** — vue-tsc + vite build clean
+
+### Notes for Orchestrator
+
+- **Error shape coexistence maintained**: All new guards use the nested `{ error: { code, message } }` shape from PR-A middleware. Existing handlers continue using flat `{ error: string }`. No migration of existing errors.
+- **createdById set on create**: Every user-facing create handler (clients, equipment, software, templates) now passes `req.user.userId` as `createdById`. Maintenance already set `technicianId` on create (existing behavior).
+- **Maintenance uses technicianId**: Ownership checks on maintenances use `technicianId`, NOT `createdById`. This is correct per design.
+- **Push module safe**: DELETE subscription already filtered by `userId` — no additional guard needed.
+- **No bulk-delete endpoint**: Grep confirmed no bulk-delete exists in the codebase. Will need ADMIN guard when built in a future slice.
+- **Express 5 params pattern**: All param extraction uses the existing `getParam()` helper or `Array.isArray` guard that PR-A established.
+- **Service layer changes are backward-compatible**: All new `createdById`/`userId` params are optional, so existing callers (tests, seeds) continue to work without changes.
+
+### Manual Smoke Test Plan (for orchestrator)
+
+1. Login as USER → `POST /api/clients` → 201 (created with `createdById` = user's id)
+2. Login as USER → `GET /api/clients` → only own clients returned
+3. Login as ADMIN → `GET /api/clients` → all clients returned
+4. Login as USER → `DELETE /api/clients/:id` → 403
+5. Login as ADMIN → `DELETE /api/clients/:id` → 204
+6. Login as USER → `PUT /api/clients/:id` (own client) → 200
+7. Login as USER → `PUT /api/clients/:id` (other's client) → 403
+8. Same pattern for equipment, software, templates (replace "clients" with each module)
+9. Login as USER → `DELETE /api/attachments/:id` → 403
+10. Login as USER → `DELETE /api/maintenances/:id/items/:itemId` → 403
+11. Login as USER → `PATCH /api/maintenances/:id` (own maintenance) → 200
+12. Login as USER → `PATCH /api/maintenances/:id` (other's maintenance) → 403
+13. Login as USER → `POST /api/maintenances/:id/close` (own) → 200
+14. Login as USER → `POST /api/maintenances/:id/close` (other's) → 403
+15. Login as USER → `POST /api/action-types` → 403
+16. Login as ADMIN → `POST /api/action-types` → 201
+17. Login as USER → `POST /api/equipment-categories` → 403
+18. Login as ADMIN → `POST /api/equipment-categories` → 201
+
+### Next Step
+
+Awaiting merge confirmation. After merge, proceed to PR-C (frontend role-aware UI).
