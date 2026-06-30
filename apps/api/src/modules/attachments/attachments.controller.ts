@@ -42,6 +42,7 @@ attachmentsRouter.post(
         scope: "MAINTENANCE",
         parentId: maintenanceId,
         file: req.file,
+        createdById: req.user!.userId,
       });
 
       res.status(201).json({ attachment });
@@ -66,6 +67,7 @@ attachmentsRouter.post(
         scope: "MAINTENANCE_ITEM",
         parentId: itemId,
         file: req.file,
+        createdById: req.user!.userId,
       });
 
       res.status(201).json({ attachment });
