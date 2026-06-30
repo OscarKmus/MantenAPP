@@ -19,9 +19,8 @@ function getParam(val: string | string[]): string {
 // GET /api/clients?q=
 clientsRouter.get("/", validate(clientQuerySchema, "query"), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { q } = req.query as { q?: string };
-    const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
-    const clients = await listClients(q, userId);
+      const { q } = req.query as { q?: string };
+      const clients = await listClients(q);
     res.json({ clients });
   } catch (error) {
     next(error);
