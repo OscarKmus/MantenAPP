@@ -11,12 +11,16 @@ function computeEffectiveDate(
   return manualOverride ?? agreedAt ?? baseAt;
 }
 
-export async function listClients(query?: string) {
-  const where = query
+export async function listClients(query?: string, userId?: string) {
+  const where: Record<string, unknown> = query
     ? {
         name: { contains: query, mode: "insensitive" as const },
       }
     : {};
+
+  if (userId) {
+    where.createdById = userId;
+  }
 
   const clients = await prisma.client.findMany({
     where,
@@ -50,7 +54,7 @@ export async function getClient(id: string) {
   return { ...rest, equipmentCount: _count.equipment };
 }
 
-export async function createClient(input: CreateClientInput) {
+export async function createClient(input: CreateClientInput, createdById?: string) {
   // Compute base date if frequency is provided
   let nextMaintenanceBaseAt: Date | null = null;
   if (input.frequencyDays) {
@@ -68,6 +72,7 @@ export async function createClient(input: CreateClientInput) {
       frequencyDays: input.frequencyDays,
       nextMaintenanceBaseAt,
       nextMaintenanceAt: nextMaintenanceBaseAt, // effective defaults to base
+      ...(createdById && { createdById }),
     },
   });
 

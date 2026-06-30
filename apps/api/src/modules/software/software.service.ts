@@ -7,12 +7,14 @@ export async function listSoftware(filters: {
   clientId?: string;
   equipmentId?: string;
   licenseType?: LicenseType;
+  userId?: string;
 }) {
   const where: Record<string, unknown> = {};
 
   if (filters.clientId) where.clientId = filters.clientId;
   if (filters.equipmentId) where.equipmentId = filters.equipmentId;
   if (filters.licenseType) where.licenseType = filters.licenseType;
+  if (filters.userId) where.createdById = filters.userId;
 
   return prisma.software.findMany({
     where,
@@ -37,7 +39,7 @@ export async function getSoftware(id: string) {
   return software;
 }
 
-export async function createSoftware(input: CreateSoftwareInput) {
+export async function createSoftware(input: CreateSoftwareInput, createdById?: string) {
   const client = await prisma.client.findUnique({ where: { id: input.clientId } });
   if (!client) {
     throw createError(404, "Client not found");
@@ -58,6 +60,7 @@ export async function createSoftware(input: CreateSoftwareInput) {
       equipmentId: input.equipmentId ?? null,
       expiresAt: new Date(input.expiresAt),
       notes: input.notes ?? null,
+      ...(createdById && { createdById }),
     },
   });
 }

@@ -39,7 +39,7 @@ export async function getTemplate(id: string) {
   return template;
 }
 
-export async function createTemplate(clientId: string, input: CreateTemplateInput) {
+export async function createTemplate(clientId: string, input: CreateTemplateInput, createdById?: string) {
   // Verify client exists
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -68,6 +68,7 @@ export async function createTemplate(clientId: string, input: CreateTemplateInpu
       clientId,
       name: input.name,
       description: input.description ?? null,
+      ...(createdById && { createdById }),
       items: {
         create: input.equipmentIds.map((equipmentId, index) => ({
           equipmentId,

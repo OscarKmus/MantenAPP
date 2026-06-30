@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { createActionTypeSchema, updateActionTypeSchema } from "./action-types.schema";
 import { listActionTypes, getActionType, createActionType, updateActionType, deleteActionType } from "./action-types.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole } from "../../middleware/auth";
 
 export const actionTypesRouter: IRouter = Router();
 
@@ -20,7 +20,7 @@ actionTypesRouter.get("/", async (_req: Request, res: Response, next: NextFuncti
 });
 
 // POST /api/action-types
-actionTypesRouter.post("/", validate(createActionTypeSchema), async (req: Request, res: Response, next: NextFunction) => {
+actionTypesRouter.post("/", requireRole("ADMIN"), validate(createActionTypeSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const actionType = await createActionType(req.body);
     res.status(201).json({ actionType });
@@ -41,7 +41,7 @@ actionTypesRouter.get("/:id", async (req: Request, res: Response, next: NextFunc
 });
 
 // PATCH /api/action-types/:id
-actionTypesRouter.patch("/:id", validate(updateActionTypeSchema), async (req: Request, res: Response, next: NextFunction) => {
+actionTypesRouter.patch("/:id", requireRole("ADMIN"), validate(updateActionTypeSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const actionType = await updateActionType(id, req.body);
@@ -52,7 +52,7 @@ actionTypesRouter.patch("/:id", validate(updateActionTypeSchema), async (req: Re
 });
 
 // DELETE /api/action-types/:id
-actionTypesRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+actionTypesRouter.delete("/:id", requireRole("ADMIN"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     await deleteActionType(id);

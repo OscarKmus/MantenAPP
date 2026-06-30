@@ -2,7 +2,8 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { createTemplateSchema, updateTemplateSchema } from "./templates.schema";
 import { listTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate, useTemplate } from "./templates.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole, requireOwnershipOrAdmin } from "../../middleware/auth";
+import prisma from "../../lib/prisma";
 
 export const templatesRouter: IRouter = Router();
 
@@ -35,7 +36,7 @@ templatesRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const clientId = getParam(req.params.clientId);
-      const template = await createTemplate(clientId, req.body);
+      const template = await createTemplate(clientId, req.body, req.user!.userId);
       res.status(201).json({ template });
     } catch (error) {
       next(error);
@@ -61,6 +62,11 @@ templatesRouter.get(
 templatesRouter.patch(
   "/templates/:id",
   validate(updateTemplateSchema),
+  requireOwnershipOrAdmin(async (req) => {
+    const id = getParam(req.params.id);
+    const t = await prisma.template.findUnique({ where: { id }, select: { createdById: true } });
+    return t?.createdById ?? null;
+  }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
@@ -75,6 +81,7 @@ templatesRouter.patch(
 // DELETE /api/templates/:id
 templatesRouter.delete(
   "/templates/:id",
+  requireRole("ADMIN"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);

@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import multer from "multer";
 import { uploadAttachment, deleteAttachment, listAttachments } from "./attachments.service";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole } from "../../middleware/auth";
 import { localStorage } from "../../services/storage/local.provider";
 import { createError } from "../../middleware/error-handler";
 
@@ -92,6 +92,7 @@ attachmentsRouter.get(
 // DELETE /api/attachments/:id
 attachmentsRouter.delete(
   "/attachments/:id",
+  requireRole("ADMIN"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);

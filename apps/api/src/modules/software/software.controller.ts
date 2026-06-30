@@ -10,7 +10,8 @@ import {
   listSoftwareByEquipment,
 } from "./software.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole, requireOwnershipOrAdmin } from "../../middleware/auth";
+import prisma from "../../lib/prisma";
 import type { LicenseType } from "@mantenti/types";
 
 export const softwareRouter: IRouter = Router();
@@ -28,7 +29,8 @@ softwareRouter.get(
         equipmentId?: string;
         licenseType?: LicenseType;
       };
-      const software = await listSoftware({ clientId, equipmentId, licenseType });
+      const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
+      const software = await listSoftware({ clientId, equipmentId, licenseType, userId });
       res.json({ software });
     } catch (error) {
       next(error);
@@ -42,7 +44,7 @@ softwareRouter.post(
   validate(createSoftwareSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const software = await createSoftware(req.body);
+      const software = await createSoftware(req.body, req.user!.userId);
       res.status(201).json({ software });
     } catch (error) {
       next(error);
@@ -65,6 +67,11 @@ softwareRouter.get("/software/:id", async (req: Request, res: Response, next: Ne
 softwareRouter.patch(
   "/software/:id",
   validate(updateSoftwareSchema),
+  requireOwnershipOrAdmin(async (req) => {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const s = await prisma.software.findUnique({ where: { id }, select: { createdById: true } });
+    return s?.createdById ?? null;
+  }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -77,7 +84,7 @@ softwareRouter.patch(
 );
 
 // DELETE /api/software/:id
-softwareRouter.delete("/software/:id", async (req: Request, res: Response, next: NextFunction) => {
+softwareRouter.delete("/software/:id", requireRole("ADMIN"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     await deleteSoftware(id);

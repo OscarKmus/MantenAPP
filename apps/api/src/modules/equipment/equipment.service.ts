@@ -4,16 +4,19 @@ import { localStorage } from "../../services/storage/local.provider";
 import type { CreateEquipmentInput, UpdateEquipmentInput } from "./equipment.schema";
 import type { EquipmentStatus } from "@mantenti/types";
 
-export async function listEquipment(clientId: string, status?: EquipmentStatus) {
+export async function listEquipment(clientId: string, status?: EquipmentStatus, userId?: string) {
   // Verify client exists
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
     throw createError(404, "Client not found");
   }
 
-  const where: { clientId: string; status?: EquipmentStatus } = { clientId };
+  const where: Record<string, unknown> = { clientId };
   if (status) {
     where.status = status;
+  }
+  if (userId) {
+    where.createdById = userId;
   }
 
   return prisma.equipment.findMany({
@@ -40,7 +43,7 @@ export async function getEquipment(id: string) {
   return equipment;
 }
 
-export async function createEquipment(clientId: string, input: CreateEquipmentInput) {
+export async function createEquipment(clientId: string, input: CreateEquipmentInput, createdById?: string) {
   // Verify client exists
   const client = await prisma.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -69,6 +72,7 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     processor: input.processor || null,
     ram: input.ram || null,
     disk: input.disk || null,
+    ...(createdById && { createdById }),
   };
 
   return prisma.equipment.create({
