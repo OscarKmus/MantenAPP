@@ -8,6 +8,32 @@ Maintenance management app for technicians and clients.
 - **Backend**: Express 5 + TypeScript + Prisma (PostgreSQL)
 - **Shared**: `@mantenti/types` workspace package
 
+## Roles & Access Control
+
+Mantenti uses a two-role RBAC system:
+
+| Role | Capabilities |
+|------|-------------|
+| **USER** | Create and edit own records (clients, equipment, software, templates, maintenances). View catalogs. Cannot delete resources. |
+| **ADMIN** | Full access: all USER capabilities + delete any resource, manage catalogs (action-types, equipment-categories), manage users. |
+
+### Default Seed Credentials
+
+- **Username:** `admin` · **Password:** `admin123` · **Role:** ADMIN
+- DEV ONLY. Change in production.
+
+### User Management
+
+Only ADMINs can create, update, and delete users via `POST /api/users`, `PATCH /api/users/:id/role`, `DELETE /api/users/:id`.
+
+### Last-Admin Protection
+
+The system prevents demoting or deleting the last ADMIN account to ensure there is always at least one administrator.
+
+### Token Role Refresh
+
+The user's role is embedded in the JWT access token. When a token is refreshed, the role is re-read from the database. After demoting a user, the old access token remains valid for up to 15 minutes (the access token TTL). This is a known MVP limitation acceptable for internal tools.
+
 ## Getting Started
 
 ### Prerequisites
