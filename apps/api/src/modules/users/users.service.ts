@@ -29,6 +29,24 @@ export async function listUsers() {
   return users.map(sanitizeUser);
 }
 
+export async function getUserById(
+  id: string,
+  currentUser: { userId: string; role: UserRole }
+) {
+  // USER can only get themselves
+  if (currentUser.role !== "ADMIN" && currentUser.userId !== id) {
+    throw createError(403, "You can only view your own profile");
+  }
+
+  const user = await prisma.user.findUnique({ where: { id } });
+
+  if (!user) {
+    throw createError(404, "User not found");
+  }
+
+  return sanitizeUser(user);
+}
+
 export async function createUser(input: CreateUserInput) {
   const existing = await prisma.user.findUnique({
     where: { username: input.username },
