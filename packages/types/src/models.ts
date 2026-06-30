@@ -80,7 +80,7 @@ export interface ActionType {
 export interface Maintenance {
   id: string;
   clientId: string;
-  technicianId: string;
+  technicianId: string | null;
   status: MaintenanceStatus;
   notes: string | null;
   signatureData: string | null; // client signature storage path

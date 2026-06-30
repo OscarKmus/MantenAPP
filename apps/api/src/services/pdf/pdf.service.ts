@@ -266,7 +266,7 @@ export async function generateMaintenancePdf(
     const metaItems = [
       { label: "N° Reporte", value: reportNumber },
       { label: "Fecha", value: formatDateTime(closedAt.toISOString()) },
-      { label: "Técnico", value: maintenance.technician.fullName },
+      { label: "Técnico", value: maintenance.technician?.fullName ?? "Sin asignar" },
       { label: "Duración", value: duration },
     ];
 
@@ -761,7 +761,7 @@ export async function generateMaintenancePdf(
         .fontSize(9)
         .font("Helvetica-Bold")
         .fillColor(TEXT_PRIMARY)
-        .text(maintenance.technician.fullName, techSigX, currentY + sigHeight + 24, {
+        .text(maintenance.technician?.fullName ?? "Sin asignar", techSigX, currentY + sigHeight + 24, {
           width: sigWidth,
           align: "center",
         });
