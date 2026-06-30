@@ -210,14 +210,13 @@ function handleDelete(eq: Equipment) {
               </span>
             </div>
             <!-- Software badge -->
-            <div v-if="eq.software" class="mt-2">
-              <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                {{ eq.software.name }}
-              </span>
-            </div>
+            <span v-if="eq.softwareLicenses && eq.softwareLicenses.length > 0"
+                  class="inline-flex items-center gap-1 mt-2 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              {{ eq.softwareLicenses[0].name }}<span v-if="eq.softwareLicenses.length > 1"> +{{ eq.softwareLicenses.length - 1 }}</span>
+            </span>
           </div>
 
           <!-- Actions -->
@@ -345,29 +344,17 @@ function handleDelete(eq: Equipment) {
             <!-- License Info -->
             <div class="bg-slate-50 rounded-xl p-4">
               <h3 class="text-sm font-semibold text-slate-700 mb-3">Software instalado</h3>
-              <div v-if="selectedEquipment.software" class="space-y-2 text-sm">
-                <div>
-                  <p class="text-slate-500 text-xs">Nombre</p>
-                  <p class="text-slate-800 font-medium">{{ selectedEquipment.software.name }}</p>
-                </div>
-                <div>
-                  <p class="text-slate-500 text-xs">Tipo</p>
-                  <p class="text-slate-800 font-medium">{{ selectedEquipment.software.licenseType }}</p>
-                </div>
-                <div>
-                  <p class="text-slate-500 text-xs">Vencimiento</p>
-                  <p class="text-slate-800 font-medium">
-                    {{ new Date(selectedEquipment.software.expiresAt).toLocaleDateString("es") }}
-                  </p>
-                </div>
-                <div v-if="selectedEquipment.software.notes">
-                  <p class="text-slate-500 text-xs">Notas</p>
-                  <p class="text-slate-800">{{ selectedEquipment.software.notes }}</p>
-                </div>
-              </div>
-              <p v-else class="text-sm text-slate-500">
-                Sin software instalado
-              </p>
+              <ul v-if="selectedEquipment.softwareLicenses && selectedEquipment.softwareLicenses.length > 0"
+                  class="space-y-2 text-sm">
+                <li v-for="sw in selectedEquipment.softwareLicenses" :key="sw.id"
+                    class="border-l-2 border-slate-200 pl-3">
+                  <p class="font-medium text-slate-700">{{ sw.name }}</p>
+                  <p v-if="sw.licenseType" class="text-xs text-slate-500">Licencia: {{ sw.licenseType }}</p>
+                  <p v-if="sw.expiresAt" class="text-xs text-slate-500">Vence: {{ new Date(sw.expiresAt).toLocaleDateString("es") }}</p>
+                  <p v-if="sw.notes" class="text-xs text-slate-500 italic">{{ sw.notes }}</p>
+                </li>
+              </ul>
+              <p v-else class="text-sm text-slate-500">Sin software instalado</p>
             </div>
 
             <!-- Components -->

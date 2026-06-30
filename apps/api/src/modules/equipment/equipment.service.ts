@@ -21,6 +21,7 @@ export async function listEquipment(clientId: string, status?: EquipmentStatus) 
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       software: true,
+      softwareLicenses: true,
     },
   });
 }
@@ -31,6 +32,7 @@ export async function getEquipment(id: string) {
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       software: true,
+      softwareLicenses: true,
     },
   });
   if (!equipment) {
@@ -76,6 +78,7 @@ export async function createEquipment(clientId: string, input: CreateEquipmentIn
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       software: true,
+      softwareLicenses: true,
     },
   });
 }
@@ -113,6 +116,7 @@ export async function updateEquipment(id: string, input: UpdateEquipmentInput) {
     include: {
       category: { select: { id: true, name: true, icon: true, isComputer: true } },
       software: true,
+      softwareLicenses: true,
     },
   });
 }

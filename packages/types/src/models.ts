@@ -66,6 +66,7 @@ export interface Equipment {
   updatedAt: string;
   category?: EquipmentCategory | null;
   software?: Software | null;
+  softwareLicenses?: Software[];
 }
 
 export interface ActionType {
