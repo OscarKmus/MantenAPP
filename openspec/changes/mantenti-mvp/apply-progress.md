@@ -76,3 +76,83 @@ Slice 6 (History + Notifications) is the final slice:
 - The `ClientDetailPage.vue` already has a "Historial" tab (currently disabled/placeholder)
 - The PDF download button is already in the Resumen tab — Slice 6 should add it per-row in the history list
 - The `pdfPath` and `pdfEngine` fields are already in the Maintenance model and shared types
+
+---
+
+## Slice 6: History + Notifications — COMPLETE
+
+### Summary
+
+Implemented client maintenance history endpoint and list view, plus the full notifications module with in-app notifications, web push subscriptions, notification bell, and a dedicated notifications page. Includes daily cron reminders, service worker push handling, and notification preference management.
+
+### Key Decisions
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **History endpoint per client** | Scoped to client, returns closed maintenances with metadata. Keeps queries efficient. |
+| 2 | **Web push via web-push npm** | Standard library for VAPID-based push. Works with service workers. |
+| 3 | **Daily cron at 09:00 UTC** | Consistent reminder generation. Dedup within 24h prevents spam. |
+
+### Tasks Completed
+
+All Slice 6 tasks marked complete. Archived in `openspec/changes/archive/2026-06-26-mantenti-mvp-slice-6/`.
+
+---
+
+## Slice 6-1: Bulk Operations — COMPLETE
+
+### Summary
+
+Implemented bulk delete and bulk status change operations for clients and equipment. Deferred from slice 6 to keep slice 6 focused on history/notifications.
+
+### Tasks Completed
+
+All Slice 6-1 tasks marked complete. Archived in `openspec/changes/archive/2026-06-26-mantenti-mvp-slice-6-1/`.
+
+---
+
+## Slice 7: Multi-User RBAC — COMPLETE
+
+### Summary
+
+Pivoted MantenApp from single-user to explicit two-role RBAC (USER / ADMIN). Added UserRole enum, JWT role augmentation, middleware factories (requireRole, requireOwnershipOrAdmin), users module with CRUD + last-admin protection, DELETE guards on all 8 endpoints, ownership checks on PUT/PATCH, frontend v-if gating on 17 surfaces, admin user management UI, and Maintenance.technicianId nullable fix.
+
+### Key Decisions
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **USER edit scope: own records only** | Ownership check on PUT/PATCH via createdById/technicianId |
+| 2 | **Migration default: all existing users to ADMIN** | Preserves current behavior, no lockout |
+| 3 | **ADMIN-only user creation (no self-registration)** | Internal tool, fixed team |
+| 4 | **Frontend: hide buttons (not disable)** | Cleaner UX, no confusion |
+| 5 | **Admin self-demotion blocked** | Safety guard |
+| 6 | **Last-admin protection** | Cannot demote or delete the last admin |
+| 7 | **Catalog write: ADMIN-only** | action-types, equipment-categories |
+| 8 | **Maintenance ownership: technicianId** | Not createdById |
+
+### PRs Merged
+
+| PR | Hash | Description |
+|----|------|-------------|
+| PR-A | `22e84ff` | Schema + auth + middleware + users module (~700 lines) |
+| PR-B | `108c478` | DELETE guards + ownership checks (~350 lines) |
+| PR-C | `adc8498` | Frontend role-aware UI + admin page (~450 lines) |
+| Fix-up | `3fef75f` | 10 verify findings resolved (1 CRITICAL + 7 WARNING + 3 SUGGESTION) |
+
+### Specs Synced to Canonical
+
+12 modules: auth, users, clients, equipment, equipment-categories, action-types, maintenances, attachments, templates, software, notifications, push
+
+### Archived
+
+`openspec/changes/archive/2026-06-30-mantenti-mvp-slice-7/`
+
+### Build Verification
+
+- ✅ `pnpm --filter api build` — passes
+- ✅ `pnpm --filter web build` — passes
+
+### Outstanding
+
+- Dev DB checksum drift on F1 migration (known issue, not a blocker)
+- Push to origin not yet done (archive commit pending)
