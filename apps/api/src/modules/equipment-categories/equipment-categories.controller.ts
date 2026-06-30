@@ -8,7 +8,7 @@ import {
   deleteCategory,
 } from "./equipment-categories.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole } from "../../middleware/auth";
 
 export const equipmentCategoriesRouter: IRouter = Router();
 
@@ -27,6 +27,7 @@ equipmentCategoriesRouter.get("/", async (_req: Request, res: Response, next: Ne
 // POST /api/equipment-categories
 equipmentCategoriesRouter.post(
   "/",
+  requireRole("ADMIN"),
   validate(createCategorySchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -52,6 +53,7 @@ equipmentCategoriesRouter.get("/:id", async (req: Request, res: Response, next: 
 // PATCH /api/equipment-categories/:id
 equipmentCategoriesRouter.patch(
   "/:id",
+  requireRole("ADMIN"),
   validate(updateCategorySchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -65,7 +67,7 @@ equipmentCategoriesRouter.patch(
 );
 
 // DELETE /api/equipment-categories/:id
-equipmentCategoriesRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+equipmentCategoriesRouter.delete("/:id", requireRole("ADMIN"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     await deleteCategory(id);
