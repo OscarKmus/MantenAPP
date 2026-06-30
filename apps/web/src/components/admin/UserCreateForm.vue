@@ -33,8 +33,8 @@ function validate(): boolean {
 
   if (!form.value.password) {
     errors.value.password = "La contraseña es requerida";
-  } else if (form.value.password.length < 6) {
-    errors.value.password = "Mínimo 6 caracteres";
+  } else if (form.value.password.length < 8) {
+    errors.value.password = "Mínimo 8 caracteres";
   }
 
   if (!form.value.fullName.trim()) {
@@ -121,7 +121,7 @@ async function handleSubmit() {
           'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
           errors.password ? 'border-red-300' : 'border-slate-300',
         ]"
-        placeholder="Mínimo 6 caracteres"
+        placeholder="Mínimo 8 caracteres"
       />
       <p v-if="errors.password" class="mt-1 text-xs text-red-600">{{ errors.password }}</p>
     </div>

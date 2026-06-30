@@ -174,7 +174,7 @@ model ActionType {
 model Maintenance {
   id                      String            @id @default(uuid())
   clientId                String            @map("client_id")
-  technicianId            String            @map("technician_id")
+  technicianId            String?           @map("technician_id")
   status                  MaintenanceStatus @default(DRAFT)
   notes                   String?
   signatureData           String?           @map("signature_data") // client signature (legacy name)
@@ -186,7 +186,7 @@ model Maintenance {
   updatedAt     DateTime          @updatedAt @map("updated_at")
 
   client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  technician  User              @relation(fields: [technicianId], references: [id])
+  technician  User?             @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   items       MaintenanceItem[]
 
   @@index([clientId, createdAt(sort: Desc)])

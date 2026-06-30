@@ -90,7 +90,8 @@ pushRouter.delete(
   "/subscriptions/:endpoint",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.userId;
+      // ADMIN can delete any subscription; USER can only delete own
+      const userId = req.user!.role === "ADMIN" ? null : req.user!.userId;
       const rawEndpoint = Array.isArray(req.params.endpoint) ? req.params.endpoint[0] : req.params.endpoint;
       const endpoint = decodeURIComponent(rawEndpoint);
 

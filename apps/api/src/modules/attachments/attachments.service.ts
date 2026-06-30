@@ -34,6 +34,7 @@ export interface UploadAttachmentInput {
   scope: AttachmentScope;
   parentId: string;
   file: Express.Multer.File;
+  createdById?: string;
 }
 
 export async function uploadAttachment(input: UploadAttachmentInput) {
@@ -110,6 +111,7 @@ export async function uploadAttachment(input: UploadAttachmentInput) {
       mimeType: file.mimetype,
       sizeBytes: file.size,
       storagePath: result.storagePath,
+      createdById: input.createdById ?? null,
     },
   });
 

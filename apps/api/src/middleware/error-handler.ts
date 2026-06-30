@@ -5,12 +5,16 @@ import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 export interface AppError extends Error {
   statusCode: number;
   isOperational: boolean;
+  code?: string;
 }
 
-export function createError(statusCode: number, message: string): AppError {
+export function createError(statusCode: number, message: string, code?: string): AppError {
   const error = new Error(message) as AppError;
   error.statusCode = statusCode;
   error.isOperational = true;
+  if (code) {
+    error.code = code;
+  }
   return error;
 }
 
@@ -49,5 +53,10 @@ export function errorHandler(
     console.error("Unhandled error:", err);
   }
 
-  res.status(statusCode).json({ error: message });
+  // Use nested shape when code is present (RBAC errors), flat shape otherwise (legacy)
+  if (appError.code) {
+    res.status(statusCode).json({ error: { code: appError.code, message } });
+  } else {
+    res.status(statusCode).json({ error: message });
+  }
 }

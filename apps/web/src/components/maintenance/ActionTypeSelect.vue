@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useActionTypeStore } from "@/stores/action-types";
+import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps<{
   modelValue: string | null;
@@ -11,6 +12,7 @@ const emit = defineEmits<{
 }>();
 
 const store = useActionTypeStore();
+const auth = useAuthStore();
 const showCreate = ref(false);
 const newName = ref("");
 const newColor = ref("#3b82f6");
@@ -81,7 +83,7 @@ async function handleCreate() {
         >
           {{ at.name }}
         </option>
-        <option value="__create__">+ Nuevo tipo</option>
+        <option v-if="auth.isAdmin" value="__create__">+ Nuevo tipo</option>
       </select>
       <!-- Color indicator -->
       <div
@@ -90,9 +92,9 @@ async function handleCreate() {
       />
     </div>
 
-    <!-- Inline create form -->
+    <!-- Inline create form (ADMIN only) -->
     <div
-      v-if="showCreate"
+      v-if="showCreate && auth.isAdmin"
       class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3"
     >
       <div>

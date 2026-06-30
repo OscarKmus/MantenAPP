@@ -86,9 +86,8 @@ export async function listSubscriptions(userId: string) {
   });
 }
 
-export async function removeSubscription(userId: string, endpoint: string) {
-  const deleted = await prisma.pushSubscription.deleteMany({
-    where: { userId, endpoint },
-  });
+export async function removeSubscription(userId: string | null, endpoint: string) {
+  const where = userId ? { userId, endpoint } : { endpoint };
+  const deleted = await prisma.pushSubscription.deleteMany({ where });
   return deleted.count > 0;
 }
