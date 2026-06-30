@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { Equipment, EquipmentStatus } from "@mantenti/types";
+import { useAuthStore } from "@/stores/auth";
 import EquipmentForm from "./EquipmentForm.vue";
 
 const STATUS_LABELS: Record<EquipmentStatus, string> = {
@@ -28,6 +29,8 @@ const emit = defineEmits<{
   update: [id: string, data: Record<string, unknown>];
   delete: [id: string];
 }>();
+
+const auth = useAuthStore();
 
 const showForm = ref(false);
 const editingEquipment = ref<Equipment | null>(null);
@@ -230,6 +233,7 @@ function handleDelete(eq: Equipment) {
               </svg>
             </button>
             <button
+              v-if="auth.isAdmin"
               class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50
                      focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
               title="Eliminar"

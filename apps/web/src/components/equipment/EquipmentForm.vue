@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from "vue";
 import type { Equipment, EquipmentStatus, EquipmentCategory, Software } from "@mantenti/types";
 import { useInventoryStore } from "@/stores/inventory";
+import { useAuthStore } from "@/stores/auth";
 import api from "@/lib/api";
 
 const STATUS_OPTIONS: { value: EquipmentStatus; label: string }[] = [
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const inventoryStore = useInventoryStore();
+const auth = useAuthStore();
 const activeTab = ref<"datos" | "componentes">("datos");
 const showCategoryDialog = ref(false);
 const showCategoryManager = ref(false);
@@ -306,6 +308,7 @@ async function deleteCategory(cat: EquipmentCategory) {
             </option>
           </select>
           <button
+            v-if="auth.isAdmin"
             type="button"
             class="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
                    hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -317,6 +320,7 @@ async function deleteCategory(cat: EquipmentCategory) {
             </svg>
           </button>
           <button
+            v-if="auth.isAdmin"
             type="button"
             class="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
                    hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -640,6 +644,7 @@ async function deleteCategory(cat: EquipmentCategory) {
               </div>
               <div v-if="editingCategory?.id !== cat.id" class="flex items-center gap-1">
                 <button
+                  v-if="auth.isAdmin"
                   type="button"
                   class="p-1.5 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50"
                   @click="openEditCategory(cat)"
@@ -649,6 +654,7 @@ async function deleteCategory(cat: EquipmentCategory) {
                   </svg>
                 </button>
                 <button
+                  v-if="auth.isAdmin"
                   type="button"
                   class="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
                   @click="deleteCategory(cat)"
