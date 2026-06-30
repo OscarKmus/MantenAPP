@@ -16,6 +16,7 @@ import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
 import { notificationsRouter } from "./modules/notifications/notifications.controller";
 import { pushRouter } from "./services/notifications/push.controller";
+import { usersRouter } from "./modules/users/users.controller";
 import { startCron } from "./services/notifications/cron.service";
 import { initVapid } from "./services/notifications/push.service";
 
@@ -45,6 +46,7 @@ app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/push", pushRouter);
+app.use("/api/users", usersRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
