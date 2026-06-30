@@ -299,3 +299,86 @@ Awaiting merge confirmation. After merge, proceed to PR-C (frontend role-aware U
 ### Next Step
 
 Awaiting merge confirmation. This is the last PR for slice 7. After merge, proceed to sdd-verify and sdd-archive.
+
+---
+
+## Fix-up: 2026-06-30 — completed
+
+### Branch
+`slice-7/fix-verify-findings` (based on `master` at `adc8498`, PR-A + PR-B + PR-C merged)
+
+### Commits
+
+| # | Hash | Message |
+|---|------|---------|
+| 1 | `ca08a98` | `fix(db): make Maintenance.technicianId nullable with onDelete SetNull` |
+| 2 | `4197fa5` | `fix(api): set createdById on attachment upload` |
+| 3 | `a0f189d` | `fix(api): allow ADMIN to delete any push subscription` |
+| 4 | `2487b0f` | `feat(api): add GET /api/users/:id for self or ADMIN` |
+| 5 | `a119c72` | `fix(rbac): align LAST_ADMIN error code between backend and frontend` |
+| 6 | `3b55f4a` | `fix(web): gate ActionTypeSelect create button for ADMIN` |
+| 7 | `6881e1d` | `fix(web): align password min length to 8 chars in UserCreateForm` |
+| 8 | `52fb7bf` | `fix(web): use neutral Spanish in UserList and disable role dropdown for self` |
+
+### Findings Resolved
+
+| ID | Title | Severity | Commit |
+|----|-------|----------|--------|
+| F1 | Maintenance.technicianId nullable + onDelete SetNull | CRITICAL | `ca08a98` |
+| F2 | Attachments createdById on upload | WARNING | `4197fa5` |
+| F3 | Push ADMIN delete | WARNING | `a0f189d` |
+| F4 | GET /api/users/:id | WARNING | `2487b0f` |
+| F5 | LAST_ADMIN error code alignment | WARNING | `a119c72` |
+| F6 | ActionTypeSelect '+ Nuevo tipo' gated | WARNING | `3b55f4a` |
+| F7 | Password validation 8 chars | WARNING | `6881e1d` |
+| S1 | UserList neutral Spanish | SUGGESTION | `52fb7bf` |
+| S2 | UserList role dropdown disabled for self | SUGGESTION | `52fb7bf` |
+| S3 | UserCreateForm password placeholder 8 | SUGGESTION | `6881e1d` |
+
+### Files Changed
+
+**F1 — Maintenance.technicianId nullable**
+- `apps/api/prisma/schema.prisma` — Changed `technicianId String` → `technicianId String?`, added `onDelete: SetNull` to relation, changed `technician User` → `technician User?`
+- `apps/api/prisma/migrations/20260630164451_make_maintenance_technician_nullable_set_null/migration.sql` — New migration: drops old FK, ALTER COLUMN DROP NOT NULL, re-adds FK with ON DELETE SET NULL
+- `packages/types/src/models.ts` — Changed `technicianId: string` → `technicianId: string | null`
+- `apps/api/src/services/pdf/pdf.service.ts` — Added null-safe access for `maintenance.technician?.fullName ?? "Sin asignar"` (2 locations)
+
+**F2 — Attachments createdById on upload**
+- `apps/api/src/modules/attachments/attachments.service.ts` — Added `createdById?: string` to `UploadAttachmentInput`, included in `prisma.attachment.create` data
+- `apps/api/src/modules/attachments/attachments.controller.ts` — Passed `createdById: req.user!.userId` in both POST handlers
+
+**F3 — Push ADMIN delete**
+- `apps/api/src/services/notifications/push.service.ts` — Changed `removeSubscription` to accept `userId: string | null`; when null, deletes without userId filter
+- `apps/api/src/services/notifications/push.controller.ts` — ADMIN passes `null` as userId (deletes any), USER passes `req.user!.userId` (own only)
+
+**F4 — GET /api/users/:id**
+- `apps/api/src/modules/users/users.controller.ts` — Removed global `requireRole("ADMIN")` middleware; added per-route `requireRole("ADMIN")` to GET /, POST /, PATCH /:id/role, DELETE /:id; added GET /:id route (self-or-ADMIN)
+- `apps/api/src/modules/users/users.service.ts` — Added `getUserById(id, currentUser)` function with self-or-ADMIN check
+
+**F5 — LAST_ADMIN error code alignment**
+- `apps/api/src/middleware/error-handler.ts` — Added optional `code` field to `AppError` and `createError()`; error handler produces nested `{ error: { code, message } }` when code is present, flat `{ error: string }` otherwise
+- `apps/api/src/modules/users/users.service.ts` — Changed `createError(409, "Cannot remove the last admin")` → `createError(403, "Cannot remove the last admin", "LAST_ADMIN")`
+
+**F6 — ActionTypeSelect gating**
+- `apps/web/src/components/maintenance/ActionTypeSelect.vue` — Imported `useAuthStore`, added `v-if="auth.isAdmin"` to `__create__` option, gated inline create form with `auth.isAdmin`
+
+**F7 + S3 — Password validation + placeholder**
+- `apps/web/src/components/admin/UserCreateForm.vue` — Changed validation from `length < 6` → `length < 8`, error message from "Mínimo 6 caracteres" → "Mínimo 8 caracteres", placeholder from "Mínimo 6 caracteres" → "Mínimo 8 caracteres"
+
+**S1 + S2 — UserList improvements**
+- `apps/web/src/components/admin/UserList.vue` — Changed "(vos)" → "(tú)" for neutral Spanish; added `:disabled="isSelf(user.id)"` to role dropdown with disabled styling
+
+### F3 Investigation Outcome
+
+**PR-B's apply agent was wrong.** The agent reported "no changes needed" for the push module because "DELETE subscription already scoped by `req.user.userId`." This is technically true — the endpoint does scope by userId — but the spec (push/spec.md) explicitly requires ADMIN to delete ANY user's subscription, not just their own. The verify agent correctly identified this gap.
+
+The fix was straightforward: the `removeSubscription` service function now accepts `userId: string | null`. When the controller detects an ADMIN user, it passes `null`, which causes the service to delete by endpoint alone (no userId filter). When a USER, it passes their userId (preserving the original ownership check).
+
+### Build Results
+
+- `pnpm --filter api build`: **ok** — clean TypeScript compilation
+- `pnpm --filter web build`: **ok** — vue-tsc + vite build clean, 148 modules
+
+### Next Step
+
+Awaiting merge confirmation. After merge, re-run sdd-verify, then sdd-archive.
