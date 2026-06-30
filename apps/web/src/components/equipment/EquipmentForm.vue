@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
-import type { Equipment, EquipmentStatus, EquipmentCategory, Software } from "@mantenti/types";
+import type { Equipment, EquipmentStatus, EquipmentCategory } from "@mantenti/types";
 import { useInventoryStore } from "@/stores/inventory";
 import { useAuthStore } from "@/stores/auth";
 import api from "@/lib/api";
@@ -32,7 +32,6 @@ const newCategoryName = ref("");
 const newCategoryIsComputer = ref(false);
 const editingCategory = ref<EquipmentCategory | null>(null);
 const categoryManagerForm = ref({ name: "", isComputer: false });
-const clientSoftware = ref<Software[]>([]);
 
 const form = ref({
   name: "",
@@ -42,7 +41,6 @@ const form = ref({
   assignedTo: "",
   status: "ACTIVE" as EquipmentStatus,
   categoryId: null as string | null,
-  softwareId: null as string | null,
   processor: "",
   ram: "",
   disk: "",
@@ -67,9 +65,8 @@ watch(
         serial: eq.serial ?? "",
         assignedTo: eq.assignedTo ?? "",
         status: eq.status,
-        categoryId: eq.categoryId ?? null,
-        softwareId: eq.softwareId ?? null,
-        processor: eq.processor ?? "",
+      categoryId: eq.categoryId ?? null,
+      processor: eq.processor ?? "",
         ram: eq.ram ?? "",
         disk: eq.disk ?? "",
       };
@@ -78,23 +75,6 @@ watch(
   { immediate: true }
 );
 
-// Load client software when clientId changes
-watch(
-  () => props.clientId,
-  async (cid) => {
-    if (cid) {
-      try {
-        const { data } = await api.get<{ software: Software[] }>(`/clients/${cid}/software`);
-        clientSoftware.value = data.software;
-      } catch {
-        clientSoftware.value = [];
-      }
-    } else {
-      clientSoftware.value = [];
-    }
-  },
-  { immediate: true }
-);
 
 const isEditing = computed(() => !!props.equipment);
 
@@ -154,9 +134,6 @@ function handleSubmit() {
 
   // Category
   data.categoryId = form.value.categoryId || null;
-
-  // Software
-  data.softwareId = form.value.softwareId || null;
 
   // Components (simple strings)
   const processor = form.value.processor.trim();
@@ -411,31 +388,6 @@ async function deleteCategory(cat: EquipmentCategory) {
         </div>
       </fieldset>
 
-      <!-- Software instalado -->
-      <div>
-        <label for="eq-software" class="block text-sm font-medium text-slate-700 mb-1.5">
-          Software instalado
-          <span class="text-slate-400 font-normal">(opcional)</span>
-        </label>
-        <select
-          id="eq-software"
-          v-model="form.softwareId"
-          class="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm
-                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        >
-          <option :value="null">Sin software asignado</option>
-          <option
-            v-for="sw in clientSoftware"
-            :key="sw.id"
-            :value="sw.id"
-          >
-            {{ sw.name }} — {{ getSoftwareExpirationLabel(sw.expiresAt) }}
-          </option>
-        </select>
-        <p v-if="clientSoftware.length === 0 && clientId" class="mt-1.5 text-xs text-slate-500">
-          Este cliente no tiene software registrado. Creá uno desde la pestaña Software del cliente.
-        </p>
-      </div>
     </div>
 
     <!-- Tab: Componentes -->
