@@ -20,7 +20,8 @@ import {
   regenerateMaintenancePdf,
 } from "../../services/pdf/pdf.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, requireRole, requireOwnershipOrAdmin } from "../../middleware/auth";
+import prisma from "../../lib/prisma";
 
 export const maintenancesRouter: IRouter = Router();
 
@@ -64,6 +65,11 @@ maintenancesRouter.get(
 maintenancesRouter.patch(
   "/:id",
   validate(updateMaintenanceSchema),
+  requireOwnershipOrAdmin(async (req) => {
+    const id = getParam(req.params.id);
+    const m = await prisma.maintenance.findUnique({ where: { id }, select: { technicianId: true } });
+    return m?.technicianId ?? null;
+  }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
@@ -94,6 +100,7 @@ maintenancesRouter.patch(
 // DELETE /api/maintenances/:id/items/:itemId
 maintenancesRouter.delete(
   "/:id/items/:itemId",
+  requireRole("ADMIN"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const maintenanceId = getParam(req.params.id);
@@ -110,6 +117,11 @@ maintenancesRouter.delete(
 maintenancesRouter.post(
   "/:id/close",
   validate(closeMaintenanceSchema),
+  requireOwnershipOrAdmin(async (req) => {
+    const id = getParam(req.params.id);
+    const m = await prisma.maintenance.findUnique({ where: { id }, select: { technicianId: true } });
+    return m?.technicianId ?? null;
+  }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
@@ -184,7 +196,8 @@ maintenancesRouter.get(
       const clientId = getParam(req.params.clientId);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const result = await listClientMaintenances(clientId, page, limit);
+      const userId = req.user!.role === "USER" ? req.user!.userId : undefined;
+      const result = await listClientMaintenances(clientId, page, limit, undefined, userId);
       res.json(result);
     } catch (error) {
       next(error);
