@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/lib/api";
+import { bulkDeleteClients as apiBulkDeleteClients } from "@/lib/api/admin";
 import type { Client, Equipment, Template } from "@mantenti/types";
 
 interface ClientWithMeta extends Client {
@@ -108,6 +109,20 @@ export const useClientStore = defineStore("clients", () => {
     }
   }
 
+  async function bulkDeleteClients(ids: string[], adminToken: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiBulkDeleteClients(ids, adminToken);
+      clients.value = clients.value.filter((c) => !ids.includes(c.id));
+    } catch (err: any) {
+      error.value = err.response?.data?.error || "Error deleting clients";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     clients,
     currentClient,
@@ -120,5 +135,6 @@ export const useClientStore = defineStore("clients", () => {
     createClient,
     updateClient,
     deleteClient,
+    bulkDeleteClients,
   };
 });

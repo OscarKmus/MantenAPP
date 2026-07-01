@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { Equipment, EquipmentStatus } from "@mantenti/types";
-import { useAuthStore } from "@/stores/auth";
+import { useEquipmentStore } from "@/stores/equipment";
+import { useMultiSelect } from "@/composables/useMultiSelect";
+import { useToast } from "@/composables/useToast";
+import { cascadePreviewEquipment } from "@/lib/api/admin";
 import EquipmentForm from "./EquipmentForm.vue";
+import AdminPasswordModal from "@/components/AdminPasswordModal.vue";
+import CascadePreviewModal from "@/components/CascadePreviewModal.vue";
+import BulkActionBar from "@/components/BulkActionBar.vue";
 
 const STATUS_LABELS: Record<EquipmentStatus, string> = {
   ACTIVE: "Activo",
@@ -28,9 +34,19 @@ const emit = defineEmits<{
   create: [data: Record<string, unknown>];
   update: [id: string, data: Record<string, unknown>];
   delete: [id: string];
+  bulkDelete: [ids: string[]];
 }>();
 
-const auth = useAuthStore();
+const equipmentStore = useEquipmentStore();
+const toast = useToast();
+
+// Bulk delete state
+const equipmentRef = computed(() => props.equipment);
+const multiSelect = useMultiSelect(equipmentRef);
+const showCascadePreview = ref(false);
+const showAdminPassword = ref(false);
+const cascadeCounts = ref({ equipment: 0, maintenanceItems: 0, attachments: 0 });
+const cascadeLoading = ref(false);
 
 const showForm = ref(false);
 const editingEquipment = ref<Equipment | null>(null);
@@ -92,8 +108,55 @@ function handleDelete(eq: Equipment) {
   if (typed === eq.name) {
     emit("delete", eq.id);
   } else if (typed !== null) {
-    alert("El nombre no coincide. No se eliminó nada.");
+    toast.error("El nombre no coincide. No se eliminó nada.");
   }
+}
+
+// Bulk delete flow
+function handleBulkDeleteClick() {
+  showCascadePreview.value = true;
+  loadCascadePreview();
+}
+
+async function loadCascadePreview() {
+  cascadeLoading.value = true;
+  try {
+    const ids = [...multiSelect.selectedIds.value];
+    cascadeCounts.value = await cascadePreviewEquipment(ids);
+  } catch {
+    toast.error("Error al cargar la vista previa");
+    showCascadePreview.value = false;
+  } finally {
+    cascadeLoading.value = false;
+  }
+}
+
+function handleCascadeConfirm() {
+  showCascadePreview.value = false;
+  showAdminPassword.value = true;
+}
+
+function handleCascadeCancel() {
+  showCascadePreview.value = false;
+}
+
+async function handleAdminSuccess(token: string) {
+  showAdminPassword.value = false;
+  try {
+    const ids = [...multiSelect.selectedIds.value];
+    await equipmentStore.bulkDeleteEquipment(ids, token);
+    toast.success(`${ids.length} equipo${ids.length !== 1 ? "s" : ""} eliminado${ids.length !== 1 ? "s" : ""}`);
+    emit("bulkDelete", ids);
+    multiSelect.clear();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string };
+    const msg = err?.response?.data?.error || err?.message || "Error al eliminar equipos";
+    toast.error(msg);
+  }
+}
+
+function handleAdminCancel() {
+  showAdminPassword.value = false;
 }
 </script>
 
@@ -101,7 +164,20 @@ function handleDelete(eq: Equipment) {
   <div>
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
+        <label
+          v-if="filteredEquipment.length > 0"
+          class="flex items-center gap-2 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            :checked="multiSelect.isAllSelected.value"
+            :indeterminate="multiSelect.someSelected.value && !multiSelect.isAllSelected.value"
+            class="w-4 h-4 rounded border-slate-300 text-primary-600
+                   focus:ring-primary-500 cursor-pointer"
+            @change="multiSelect.toggleAll()"
+          />
+        </label>
         <select
           v-model="statusFilter"
           class="rounded-lg border border-slate-300 px-3 py-2 text-sm
@@ -174,7 +250,20 @@ function handleDelete(eq: Equipment) {
         @click="openDetail(eq)"
       >
         <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
+          <div class="flex items-start gap-3 flex-1 min-w-0">
+            <label
+              class="flex items-center shrink-0 mt-0.5"
+              @click.stop
+            >
+              <input
+                type="checkbox"
+                :checked="multiSelect.selectedIds.value.has(eq.id)"
+                class="w-4 h-4 rounded border-slate-300 text-primary-600
+                       focus:ring-primary-500 cursor-pointer"
+                @change="multiSelect.toggleOne(eq.id)"
+              />
+            </label>
+            <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h4 class="font-medium text-slate-800 truncate group-hover:text-primary-700 transition-colors">
                 {{ eq.name }}
@@ -219,6 +308,7 @@ function handleDelete(eq: Equipment) {
               </span>
             </div>
           </div>
+          </div>
 
           <!-- Actions -->
           <div class="flex items-center gap-1 shrink-0">
@@ -233,7 +323,6 @@ function handleDelete(eq: Equipment) {
               </svg>
             </button>
             <button
-              v-if="auth.isAdmin"
               class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50
                      focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
               title="Eliminar"
@@ -413,8 +502,8 @@ function handleDelete(eq: Equipment) {
                 class="flex-1 px-4 py-2.5 rounded-lg bg-primary-600 text-sm font-semibold text-white
                        hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 @click="
-                  openEdit(selectedEquipment!);
                   closeDetailModal();
+                  openEdit(selectedEquipment!);
                 "
               >
                 Editar
@@ -424,5 +513,29 @@ function handleDelete(eq: Equipment) {
         </div>
       </div>
     </Teleport>
+
+    <!-- Bulk action bar -->
+    <BulkActionBar
+      :count="multiSelect.selectedIds.value.size"
+      label="equipos"
+      @delete="handleBulkDeleteClick"
+      @clear="multiSelect.clear()"
+    />
+
+    <!-- Cascade preview modal -->
+    <CascadePreviewModal
+      v-if="showCascadePreview"
+      :counts="cascadeCounts"
+      :loading="cascadeLoading"
+      @confirm="handleCascadeConfirm"
+      @cancel="handleCascadeCancel"
+    />
+
+    <!-- Admin password modal -->
+    <AdminPasswordModal
+      v-if="showAdminPassword"
+      @success="handleAdminSuccess"
+      @cancel="handleAdminCancel"
+    />
   </div>
 </template>

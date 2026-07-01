@@ -24,5 +24,15 @@ export const clientQuerySchema = z.object({
   q: z.string().optional(),
 });
 
+export const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "At least one id is required").max(100, "Maximum 100 ids per batch"),
+});
+
+export const cascadePreviewSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "At least one id is required").max(100, "Maximum 100 ids per batch"),
+});
+
 export type CreateClientInput = z.infer<typeof createClientSchema>;
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
+export type BulkDeleteInput = z.infer<typeof bulkDeleteSchema>;
+export type CascadePreviewInput = z.infer<typeof cascadePreviewSchema>;

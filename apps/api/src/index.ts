@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { getEnv } from "./config/env";
 import { errorHandler } from "./middleware/error-handler";
+import { bootGuard } from "./middleware/boot-guard";
 import prisma from "./lib/prisma";
 import { authRouter } from "./modules/auth/auth.controller";
 import { clientsRouter } from "./modules/clients/clients.controller";
@@ -14,11 +15,7 @@ import { templatesRouter } from "./modules/templates/templates.controller";
 import { equipmentCategoriesRouter } from "./modules/equipment-categories/equipment-categories.controller";
 import { softwareRouter } from "./modules/software/software.controller";
 import { inventoryRouter } from "./modules/inventory/inventory.controller";
-import { notificationsRouter } from "./modules/notifications/notifications.controller";
-import { pushRouter } from "./services/notifications/push.controller";
-import { usersRouter } from "./modules/users/users.controller";
-import { startCron } from "./services/notifications/cron.service";
-import { initVapid } from "./services/notifications/push.service";
+import { adminRouter } from "./modules/admin/admin.controller";
 
 const env = getEnv();
 const app = express();
@@ -34,6 +31,10 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ─── Routes ─────────────────────────────────────────────
+// adminRouter must be mounted BEFORE the catch-all `/api` routers (equipmentRouter
+// and others apply `authMiddleware` to everything entering them, which would
+// intercept /api/admin/verify and block the public password-check endpoint).
+app.use("/api/admin", adminRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api", equipmentRouter);
@@ -44,9 +45,6 @@ app.use("/api", templatesRouter);
 app.use("/api/equipment-categories", equipmentCategoriesRouter);
 app.use("/api", softwareRouter);
 app.use("/api", inventoryRouter);
-app.use("/api/notifications", notificationsRouter);
-app.use("/api/push", pushRouter);
-app.use("/api/users", usersRouter);
 
 // ─── Error handler ──────────────────────────────────────
 app.use(errorHandler);
@@ -54,11 +52,9 @@ app.use(errorHandler);
 // ─── Start ──────────────────────────────────────────────
 async function start() {
   try {
+    bootGuard();
     await prisma.$connect();
     console.log("Database connected");
-
-    initVapid();
-    startCron();
 
     app.listen(env.PORT, () => {
       console.log(`API running on http://localhost:${env.PORT}`);

@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useClientStore } from "@/stores/clients";
-import { useAuthStore } from "@/stores/auth";
+import { useMultiSelect } from "@/composables/useMultiSelect";
+import { useToast } from "@/composables/useToast";
+import { cascadePreviewClients, bulkDeleteClients } from "@/lib/api/admin";
 import ClientCard from "@/components/clients/ClientCard.vue";
 import ClientForm from "@/components/clients/ClientForm.vue";
+import AdminPasswordModal from "@/components/AdminPasswordModal.vue";
+import CascadePreviewModal from "@/components/CascadePreviewModal.vue";
+import BulkActionBar from "@/components/BulkActionBar.vue";
 
 const router = useRouter();
 const store = useClientStore();
-const auth = useAuthStore();
+const toast = useToast();
 
 const showCreateModal = ref(false);
+
+// Bulk delete state
+const clientsRef = computed(() => store.filteredClients);
+const multiSelect = useMultiSelect(clientsRef);
+const showCascadePreview = ref(false);
+const showAdminPassword = ref(false);
+const cascadeCounts = ref<{ clients?: number; equipment: number; maintenanceItems: number; attachments: number }>({ equipment: 0, maintenanceItems: 0, attachments: 0 });
+const cascadeLoading = ref(false);
+const bulkDeleting = ref(false);
 
 onMounted(() => {
   store.fetchClients();
@@ -33,10 +47,61 @@ function goToClient(id: string) {
 async function handleDelete(id: string) {
   try {
     await store.deleteClient(id);
-  } catch (e: any) {
-    const msg = e?.response?.data?.error || e?.message || "No se pudo eliminar el cliente";
-    alert(`No se pudo eliminar el cliente:\n\n${msg}`);
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string };
+    const msg = err?.response?.data?.error || err?.message || "No se pudo eliminar el cliente";
+    toast.error(`No se pudo eliminar el cliente: ${msg}`);
   }
+}
+
+// Bulk delete flow
+function handleBulkDeleteClick() {
+  showCascadePreview.value = true;
+  loadCascadePreview();
+}
+
+async function loadCascadePreview() {
+  cascadeLoading.value = true;
+  try {
+    const ids = [...multiSelect.selectedIds.value];
+    cascadeCounts.value = await cascadePreviewClients(ids);
+  } catch {
+    toast.error("Error al cargar la vista previa");
+    showCascadePreview.value = false;
+  } finally {
+    cascadeLoading.value = false;
+  }
+}
+
+function handleCascadeConfirm() {
+  showCascadePreview.value = false;
+  showAdminPassword.value = true;
+}
+
+function handleCascadeCancel() {
+  showCascadePreview.value = false;
+}
+
+async function handleAdminSuccess(token: string) {
+  showAdminPassword.value = false;
+  bulkDeleting.value = true;
+  try {
+    const ids = [...multiSelect.selectedIds.value];
+    await store.bulkDeleteClients(ids, token);
+    toast.success(`${ids.length} cliente${ids.length !== 1 ? "s" : ""} eliminado${ids.length !== 1 ? "s" : ""}`);
+    multiSelect.clear();
+    store.fetchClients();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string };
+    const msg = err?.response?.data?.error || err?.message || "Error al eliminar clientes";
+    toast.error(msg);
+  } finally {
+    bulkDeleting.value = false;
+  }
+}
+
+function handleAdminCancel() {
+  showAdminPassword.value = false;
 }
 </script>
 
@@ -144,14 +209,36 @@ async function handleDelete(id: string) {
       </button>
     </div>
 
+    <!-- Client grid header with select-all -->
+    <div
+      v-if="store.filteredClients.length > 0"
+      class="flex items-center gap-3 mb-4"
+    >
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          :checked="multiSelect.isAllSelected.value"
+          :indeterminate="multiSelect.someSelected.value && !multiSelect.isAllSelected.value"
+          class="w-4 h-4 rounded border-slate-300 text-primary-600
+                 focus:ring-primary-500 cursor-pointer"
+          @change="multiSelect.toggleAll()"
+        />
+        <span class="text-sm text-slate-600">
+          {{ multiSelect.isAllSelected.value ? "Deseleccionar todos" : "Seleccionar todos" }}
+        </span>
+      </label>
+    </div>
+
     <!-- Client grid -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-if="store.filteredClients.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <ClientCard
         v-for="client in store.filteredClients"
         :key="client.id"
         :client="client"
+        :selected="multiSelect.selectedIds.value.has(client.id)"
         @click="goToClient(client.id)"
         @delete="handleDelete"
+        @toggle="multiSelect.toggleOne"
       />
     </div>
 
@@ -172,5 +259,29 @@ async function handleDelete(id: string) {
         </div>
       </div>
     </Teleport>
+
+    <!-- Bulk action bar -->
+    <BulkActionBar
+      :count="multiSelect.selectedIds.value.size"
+      label="clientes"
+      @delete="handleBulkDeleteClick"
+      @clear="multiSelect.clear()"
+    />
+
+    <!-- Cascade preview modal -->
+    <CascadePreviewModal
+      v-if="showCascadePreview"
+      :counts="cascadeCounts"
+      :loading="cascadeLoading"
+      @confirm="handleCascadeConfirm"
+      @cancel="handleCascadeCancel"
+    />
+
+    <!-- Admin password modal -->
+    <AdminPasswordModal
+      v-if="showAdminPassword"
+      @success="handleAdminSuccess"
+      @cancel="handleAdminCancel"
+    />
   </div>
 </template>

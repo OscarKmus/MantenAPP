@@ -62,5 +62,15 @@ export const equipmentQuerySchema = z.object({
   status: equipmentStatusEnum.optional(),
 });
 
+export const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "At least one id is required").max(100, "Maximum 100 ids per batch"),
+});
+
+export const cascadePreviewSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "At least one id is required").max(100, "Maximum 100 ids per batch"),
+});
+
 export type CreateEquipmentInput = z.infer<typeof createEquipmentSchema>;
 export type UpdateEquipmentInput = z.infer<typeof updateEquipmentSchema>;
+export type BulkDeleteInput = z.infer<typeof bulkDeleteSchema>;
+export type CascadePreviewInput = z.infer<typeof cascadePreviewSchema>;

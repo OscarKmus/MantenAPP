@@ -1,9 +1,9 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { createEquipmentSchema, updateEquipmentSchema, equipmentQuerySchema } from "./equipment.schema";
-import { listEquipment, getEquipment, createEquipment, updateEquipment, deleteEquipment } from "./equipment.service";
+import { createEquipmentSchema, updateEquipmentSchema, equipmentQuerySchema, bulkDeleteSchema, cascadePreviewSchema } from "./equipment.schema";
+import { listEquipment, getEquipment, createEquipment, updateEquipment, deleteEquipment, cascadePreviewEquipment, bulkDeleteEquipment } from "./equipment.service";
 import { validate } from "../../middleware/validate";
-import { authMiddleware, requireRole, requireOwnershipOrAdmin } from "../../middleware/auth";
-import prisma from "../../lib/prisma";
+import { authMiddleware } from "../../middleware/auth";
+import { requireAdminToken } from "../admin/admin.middleware";
 import type { EquipmentStatus } from "@mantenti/types";
 
 export const equipmentRouter: IRouter = Router();
@@ -39,13 +39,42 @@ equipmentRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const clientId = getParam(req.params.clientId);
-      const equipment = await createEquipment(clientId, req.body, req.user!.userId);
+      const equipment = await createEquipment(clientId, req.body);
       res.status(201).json({ equipment });
     } catch (error) {
       next(error);
     }
   }
 );
+
+// POST /api/equipment/cascade-preview — preview cascade counts (user JWT only, no admin token)
+equipmentRouter.post("/equipment/cascade-preview", validate(cascadePreviewSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const counts = await cascadePreviewEquipment(ids);
+    res.json(counts);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/equipment/bulk-delete — bulk delete with admin token (all-or-nothing)
+equipmentRouter.post("/equipment/bulk-delete", requireAdminToken, validate(bulkDeleteSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    const result = await bulkDeleteEquipment(ids);
+
+    if (result.skipped && result.skipped.length > 0) {
+      // Some ids didn't exist — return 207 with partial result
+      res.status(207).json(result);
+      return;
+    }
+
+    res.json({ deleted: result.deleted, ids: result.ids });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET /api/equipment/:id
 equipmentRouter.get("/equipment/:id", async (req: Request, res: Response, next: NextFunction) => {
@@ -62,11 +91,6 @@ equipmentRouter.get("/equipment/:id", async (req: Request, res: Response, next: 
 equipmentRouter.patch(
   "/equipment/:id",
   validate(updateEquipmentSchema),
-  requireOwnershipOrAdmin(async (req) => {
-    const id = getParam(req.params.id);
-    const e = await prisma.equipment.findUnique({ where: { id }, select: { createdById: true } });
-    return e?.createdById ?? null;
-  }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = getParam(req.params.id);
@@ -79,7 +103,7 @@ equipmentRouter.patch(
 );
 
 // DELETE /api/equipment/:id
-equipmentRouter.delete("/equipment/:id", requireRole("ADMIN"), async (req: Request, res: Response, next: NextFunction) => {
+equipmentRouter.delete("/equipment/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = getParam(req.params.id);
     await deleteEquipment(id);
