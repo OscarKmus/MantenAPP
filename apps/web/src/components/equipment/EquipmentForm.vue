@@ -2,8 +2,6 @@
 import { ref, watch, computed, onMounted } from "vue";
 import type { Equipment, EquipmentStatus, EquipmentCategory } from "@mantenti/types";
 import { useInventoryStore } from "@/stores/inventory";
-import { useAuthStore } from "@/stores/auth";
-import api from "@/lib/api";
 
 const STATUS_OPTIONS: { value: EquipmentStatus; label: string }[] = [
   { value: "ACTIVE", label: "Activo" },
@@ -24,7 +22,6 @@ const emit = defineEmits<{
 }>();
 
 const inventoryStore = useInventoryStore();
-const auth = useAuthStore();
 const activeTab = ref<"datos" | "componentes">("datos");
 const showCategoryDialog = ref(false);
 const showCategoryManager = ref(false);
@@ -65,8 +62,8 @@ watch(
         serial: eq.serial ?? "",
         assignedTo: eq.assignedTo ?? "",
         status: eq.status,
-      categoryId: eq.categoryId ?? null,
-      processor: eq.processor ?? "",
+        categoryId: eq.categoryId ?? null,
+        processor: eq.processor ?? "",
         ram: eq.ram ?? "",
         disk: eq.disk ?? "",
       };
@@ -74,7 +71,6 @@ watch(
   },
   { immediate: true }
 );
-
 
 const isEditing = computed(() => !!props.equipment);
 
@@ -86,16 +82,6 @@ const selectedCategory = computed(() => {
 const showComponentsTab = computed(() => {
   return selectedCategory.value?.isComputer ?? false;
 });
-
-function getSoftwareExpirationLabel(expiresAt: string): string {
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const daysUntil = Math.floor((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (daysUntil < 0) return "vencida";
-  if (daysUntil < 30) return `vence en ${daysUntil}d`;
-  if (daysUntil < 90) return `vence en ${Math.floor(daysUntil / 30)}m`;
-  return `vence en ${Math.floor(daysUntil / 30)}m`;
-}
 
 function validate(): boolean {
   errors.value = {};
@@ -199,7 +185,9 @@ async function deleteCategory(cat: EquipmentCategory) {
   }
 }
 
-
+function openAddComponent() {
+  // Deprecated - components are now simple string fields
+}
 </script>
 
 <template>
@@ -285,7 +273,6 @@ async function deleteCategory(cat: EquipmentCategory) {
             </option>
           </select>
           <button
-            v-if="auth.isAdmin"
             type="button"
             class="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
                    hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -297,7 +284,6 @@ async function deleteCategory(cat: EquipmentCategory) {
             </svg>
           </button>
           <button
-            v-if="auth.isAdmin"
             type="button"
             class="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600
                    hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -387,7 +373,6 @@ async function deleteCategory(cat: EquipmentCategory) {
           </div>
         </div>
       </fieldset>
-
     </div>
 
     <!-- Tab: Componentes -->
@@ -596,7 +581,6 @@ async function deleteCategory(cat: EquipmentCategory) {
               </div>
               <div v-if="editingCategory?.id !== cat.id" class="flex items-center gap-1">
                 <button
-                  v-if="auth.isAdmin"
                   type="button"
                   class="p-1.5 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50"
                   @click="openEditCategory(cat)"
@@ -606,7 +590,6 @@ async function deleteCategory(cat: EquipmentCategory) {
                   </svg>
                 </button>
                 <button
-                  v-if="auth.isAdmin"
                   type="button"
                   class="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
                   @click="deleteCategory(cat)"

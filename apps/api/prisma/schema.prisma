@@ -85,7 +85,6 @@ model Equipment {
   id              String          @id @default(uuid())
   clientId        String          @map("client_id")
   categoryId      String?         @map("category_id")
-  softwareId      String?         @map("software_id")
   name            String
   ip              String?
   mac             String?
@@ -103,14 +102,12 @@ model Equipment {
 
   client           Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   category         EquipmentCategory?   @relation(fields: [categoryId], references: [id])
-  software         Software?            @relation("EquipmentSoftware", fields: [softwareId], references: [id], onDelete: SetNull)
   softwareLicenses Software[]           @relation("SoftwareEquipment")
   maintenanceItems MaintenanceItem[]
   templateItems    TemplateItem[]
 
   @@index([clientId])
   @@index([categoryId])
-  @@index([softwareId])
   @@index([createdById])
   @@map("equipment")
 }
@@ -148,7 +145,6 @@ model Software {
 
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   equipment    Equipment?  @relation("SoftwareEquipment", fields: [equipmentId], references: [id], onDelete: SetNull)
-  installedOn  Equipment[] @relation("EquipmentSoftware")
 
   @@index([clientId])
   @@index([equipmentId])

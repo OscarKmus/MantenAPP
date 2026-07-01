@@ -38,11 +38,10 @@ export const createEquipmentSchema = z.object({
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
-  softwareId: z.string().uuid().nullable().optional(),
   processor: optionalString(200),
   ram: optionalString(200),
   disk: optionalString(200),
-});
+}).strict();
 
 export const updateEquipmentSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -52,11 +51,10 @@ export const updateEquipmentSchema = z.object({
   assignedTo: optionalString(200),
   status: equipmentStatusEnum.optional(),
   categoryId: z.string().uuid().nullable().optional(),
-  softwareId: z.string().uuid().nullable().optional(),
   processor: optionalString(200),
   ram: optionalString(200),
   disk: optionalString(200),
-});
+}).strict();
 
 export const equipmentQuerySchema = z.object({
   status: equipmentStatusEnum.optional(),

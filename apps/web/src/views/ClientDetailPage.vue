@@ -63,7 +63,7 @@ async function fetchSoftware() {
   softwareLoading.value = true;
   try {
     const { data } = await api.get<{ software: Software[] }>(
-      `/clients/${clientId.value}/software`
+      `/software?clientId=${clientId.value}`
     );
     softwareList.value = data.software;
   } catch {
@@ -188,6 +188,7 @@ async function handleSoftwareSubmit() {
     }
     showSoftwareForm.value = false;
     await fetchSoftware();
+    await equipmentStore.fetchEquipment(clientId.value);
   } catch (e: any) {
     alert(e?.response?.data?.error || "Error al guardar software");
   }
@@ -196,12 +197,13 @@ async function handleSoftwareSubmit() {
 async function handleSoftwareDelete(sw: Software) {
   const typed = prompt(
     `Vas a eliminar la licencia "${sw.name}".\n\n` +
-    `Escribí exactamente el nombre para confirmar:`
+      `Escribí exactamente el nombre para confirmar:`
   );
   if (typed === sw.name) {
     try {
       await api.delete(`/software/${sw.id}`);
       await fetchSoftware();
+      await equipmentStore.fetchEquipment(clientId.value);
     } catch (e: any) {
       alert(e?.response?.data?.error || "Error al eliminar software");
     }

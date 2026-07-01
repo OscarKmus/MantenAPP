@@ -98,21 +98,6 @@ export async function deleteSoftware(id: string) {
   await prisma.software.delete({ where: { id } });
 }
 
-export async function listSoftwareByClient(clientId: string) {
-  const client = await prisma.client.findUnique({ where: { id: clientId } });
-  if (!client) {
-    throw createError(404, "Client not found");
-  }
-
-  return prisma.software.findMany({
-    where: { clientId },
-    orderBy: { expiresAt: "asc" },
-    include: {
-      equipment: { select: { id: true, name: true } },
-    },
-  });
-}
-
 export async function listSoftwareByEquipment(equipmentId: string) {
   const equipment = await prisma.equipment.findUnique({ where: { id: equipmentId } });
   if (!equipment) {

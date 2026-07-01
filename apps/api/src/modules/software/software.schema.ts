@@ -21,7 +21,7 @@ export const createSoftwareSchema = z.object({
   equipmentId: z.string().uuid("Invalid equipment ID").nullable().optional(),
   expiresAt: flexibleDate,
   notes: z.string().max(500).nullable().optional(),
-});
+}).strict();
 
 export const updateSoftwareSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -29,7 +29,7 @@ export const updateSoftwareSchema = z.object({
   equipmentId: z.string().uuid("Invalid equipment ID").nullable().optional(),
   expiresAt: flexibleDate.optional(),
   notes: z.string().max(500).nullable().optional(),
-});
+}).strict();
 
 export const softwareQuerySchema = z.object({
   clientId: z.string().uuid().optional(),
