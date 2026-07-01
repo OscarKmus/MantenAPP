@@ -1,4 +1,4 @@
-import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import rateLimit from "express-rate-limit";
 
 /**
  * Rate limiter for POST /api/admin/verify
@@ -9,7 +9,6 @@ export const verifyLimiter = rateLimit({
   max: 5,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  keyGenerator: ipKeyGenerator,
   handler: (_req, res) => {
     res.status(429).json({ error: "rate_limited" });
   },
